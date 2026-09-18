@@ -812,8 +812,8 @@
             </div>
 
             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                <h3 class="font-extrabold text-slate-800 mb-1"><i class="fa-solid fa-layer-group text-brand-600 ml-1"></i> رصيد كارت "الملخص" في الرئيسية</h3>
-                <p class="text-[11px] text-slate-400 font-bold mb-4 leading-relaxed">اختار الرقم اللي عاوز يظهرلك في أول كارت بالرئيسية، ولما تدوس عليه يفتحلك التفاصيل بتاعته.</p>
+                <h3 class="font-extrabold text-slate-800 mb-1"><i class="fa-solid fa-layer-group text-brand-600 ml-1"></i> رصيدك في كارتك بصفحة "الملخص"</h3>
+                <p class="text-[11px] text-slate-400 font-bold mb-4 leading-relaxed">اختار الرقم اللي عاوز يظهرلك في كارتك (أنا / المالك) جوه صفحة الملخص، ولما تدوس عليه يفتحلك التفاصيل بتاعته على طول.</p>
                 <select id="home-balance-mode" onchange="setHomeBalanceMode(this.value)" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-3">
                     <option value="total">الرصيد الإجمالي (شامل كل الجيوب)</option>
                     <option value="free">المتبقي بعد توزيع الجيوب (المتاح للصرف)</option>
@@ -1346,8 +1346,7 @@
 
             // كروت ثابتة: بتظهر دايماً مهما كان فيها نشاط ولا لأ
             let cards = [];
-            let balInfo = getHomeBalanceInfo();
-            cards.push({ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: balInfo.value.toLocaleString() + ' ج.م', subLine2: balInfo.sub, action: balInfo.action });
+            cards.push({ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: 'نظرة عامة على كل حساباتك', action: "switchPage('merged')" });
             cards.push({ id: 'assistant', icon: 'fa-robot', color: '#8b5cf6', title: 'المساعد الذكي', sub: 'اتكلم بالعامية', action: "switchPage('assistant')" });
             cards.push({ id: 'tx', icon: 'fa-plus', color: '#ec4899', title: 'تسجيل عملية', sub: 'صرف أو قبض', action: "switchPage('tx')" });
             cards.push({ id: 'gam3eya', icon: 'fa-people-arrows', color: '#10b981', title: 'الجمعيات', sub: db.gam3ya.list.filter(g=>g.status!=='received').length + ' نشطة', action: "switchPage('gam3eya')" });
@@ -2913,21 +2912,27 @@
                 let balText = bal > 0 ? `دائن (له) ${bal.toLocaleString()}` : (bal < 0 ? `مدين (عليه) ${Math.abs(bal).toLocaleString()}` : '0');
                 let iconClass = bal > 0 ? 'fa-arrow-trend-up' : (bal < 0 ? 'fa-arrow-trend-down' : 'fa-minus');
                 
-                if(isOwner) { 
-                    balText = myNetCash.toLocaleString() + ' ج.م';
-                    balColor = myNetCash >= 0 ? 'text-brand-700 bg-brand-50 border-brand-200' : 'text-rose-700 bg-rose-50 border-rose-200';
-                    iconClass = 'fa-crown'; 
+                let ownerBalInfo = null;
+                let cardAction = `openPersonLedger('${p.id}')`;
+                let roleLabel = isOwner ? 'الرئيسي' : 'عميل / جهة';
+                if(isOwner) {
+                    ownerBalInfo = getHomeBalanceInfo();
+                    balText = ownerBalInfo.value.toLocaleString() + ' ج.م';
+                    balColor = ownerBalInfo.value >= 0 ? 'text-brand-700 bg-brand-50 border-brand-200' : 'text-rose-700 bg-rose-50 border-rose-200';
+                    iconClass = 'fa-crown';
+                    cardAction = ownerBalInfo.action;
+                    if(db.homeBalanceMode && db.homeBalanceMode.type !== 'total') roleLabel = ownerBalInfo.sub;
                 }
-                
+
                 perHtml += `
-                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-glow hover:-translate-y-0.5 transition-all cursor-pointer group relative overflow-hidden" onclick="openPersonLedger('${p.id}')">
+                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-glow hover:-translate-y-0.5 transition-all cursor-pointer group relative overflow-hidden" onclick="${cardAction}">
                     <div class="absolute top-0 right-0 left-0 h-1.5" style="background:linear-gradient(90deg, ${p.color}, #ec4899)"></div>
                     <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-white to-slate-50 opacity-50 rounded-bl-[100px] -z-10"></div>
                     <div class="flex items-center gap-4 mb-4 mt-1">
                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-md group-hover:scale-105 transition-transform" style="background:${p.color}">${p.name.charAt(0)}</div>
                         <div>
                             <h4 class="text-base font-extrabold text-slate-800">${p.name}</h4>
-                            <span class="text-[11px] text-slate-400 font-bold block mt-0.5">${isOwner ? 'الرئيسي' : 'عميل / جهة'}</span>
+                            <span class="text-[11px] text-slate-400 font-bold block mt-0.5">${roleLabel}</span>
                         </div>
                     </div>
                     <div class="flex items-center justify-between p-3 rounded-2xl border ${balColor}">
@@ -3284,16 +3289,16 @@
             }
             if(m.type === 'envelope') {
                 let e = db.envelopes.find(x => x.id === m.envelopeId);
-                if(!e) return { value: getTotalRealBalance(), sub: 'الرصيد الإجمالي', action: "switchPage('merged')" };
+                if(!e) return { value: getOwnerFreeMoney(), sub: 'الرصيد الإجمالي', action: `openPersonLedger('${db.persons[0].id}')` };
                 return { value: e.balance, sub: `جيب ${e.name}`, action: `openEnvelopeStatement('${e.id}')` };
             }
             if(m.type === 'envelopes') {
                 let list = db.envelopes.filter(e => m.envelopeIds.includes(e.id));
-                if(list.length === 0) return { value: getTotalRealBalance(), sub: 'الرصيد الإجمالي', action: "switchPage('merged')" };
+                if(list.length === 0) return { value: getOwnerFreeMoney(), sub: 'الرصيد الإجمالي', action: `openPersonLedger('${db.persons[0].id}')` };
                 let sum = list.reduce((s,e) => s + e.balance, 0);
                 return { value: sum, sub: `مجموع ${list.length} جيوب`, action: "switchPage('envelopes')" };
             }
-            return { value: getTotalRealBalance(), sub: 'الرصيد الإجمالي', action: "switchPage('merged')" };
+            return { value: getOwnerFreeMoney(), sub: 'الرصيد الإجمالي', action: `openPersonLedger('${db.persons[0].id}')` };
         }
 
         function openAccountStatement(accId) {
