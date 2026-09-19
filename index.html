@@ -453,6 +453,18 @@
                     <h2 class="font-black text-2xl text-slate-800">التحليل</h2>
                     <select id="analysis-person" onchange="renderAnalysis()" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"></select>
                 </div>
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-black text-slate-600"><i class="fa-solid fa-calendar-days text-brand-500 ml-1"></i> فلتر الفترة</h4>
+                        <span id="analysis-period-label" class="text-[10px] font-bold text-slate-400">كل الفترات</span>
+                    </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="date" id="analysis-from" onchange="renderAnalysis()" class="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold">
+                        <span class="text-[10px] font-black text-slate-400">إلى</span>
+                        <input type="date" id="analysis-to" onchange="renderAnalysis()" class="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold">
+                    </div>
+                    <div class="flex flex-wrap gap-1.5" id="analysis-period-quick"></div>
+                </div>
                 <div id="analysis-visa-toggle" class="mb-3 bg-brand-50 p-4 rounded-2xl border border-brand-100 hidden">
                     <label class="flex items-center text-sm font-bold text-brand-700 cursor-pointer">
                         <input type="checkbox" id="include-visa-analysis" checked class="mr-3 w-5 h-5 accent-brand-600 rounded" onchange="renderAnalysis()">
@@ -727,8 +739,22 @@
             <div class="flex gap-3 no-print flex-wrap">
                 <button onclick="openEnvelopeMoveModal('in')" class="flex-1 min-w-[140px] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 hover:brightness-125 text-white py-3.5 rounded-2xl font-black shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-down"></i> خصص فلوس لجيب</button>
                 <button onclick="openEnvelopeMoveModal('out')" class="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-700 py-3.5 rounded-2xl font-black shadow-sm hover:border-brand-200 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-up text-amber-500"></i> اصرف من جيب</button>
+                <button onclick="openEnvelopeMoveModal('out', {kind:'cash'})" class="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-700 py-3.5 rounded-2xl font-black shadow-sm hover:border-amber-200 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-sack-dollar text-amber-500"></i> اسحب كاش من جيب</button>
                 <button onclick="openEnvelopeTransferModal()" class="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-700 py-3.5 rounded-2xl font-black shadow-sm hover:border-brand-200 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-right-left text-brand-500"></i> تحويل بين الجيوب</button>
                 <button onclick="openAddEnvelopeModal()" class="flex-1 min-w-[140px] bg-white border border-brand-200 text-brand-600 py-3.5 rounded-2xl font-black shadow-sm hover:border-brand-300 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> جيب جديد</button>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-black text-slate-600"><i class="fa-solid fa-calendar-days text-brand-500 ml-1"></i> فلتر الفترة</h4>
+                    <span id="env-period-label" class="text-[10px] font-bold text-slate-400">كل الفترات</span>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="date" id="env-period-from" onchange="renderEnvelopes()" class="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold">
+                    <span class="text-[10px] font-black text-slate-400">إلى</span>
+                    <input type="date" id="env-period-to" onchange="renderEnvelopes()" class="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold">
+                </div>
+                <div class="flex flex-wrap gap-1.5" id="env-period-quick"></div>
             </div>
 
             <div>
@@ -736,9 +762,62 @@
                 <div class="grid grid-cols-2 gap-3" id="env-list"></div>
             </div>
 
-            <div>
-                <h3 class="font-extrabold text-slate-800 text-lg mb-3 px-1">آخر حركات الجيوب</h3>
-                <div id="env-recent-list" class="space-y-2"></div>
+        </div>
+
+        <div id="page-income" class="page no-print space-y-6">
+            <div class="vip-card rounded-[2.5rem] p-7 text-white shadow-2xl">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">متبقي من دخل الفترة</p>
+                        <h2 class="text-4xl font-black tracking-tight" id="inc-remaining">0 <span class="text-lg text-slate-400 font-bold">ج.م</span></h2>
+                    </div>
+                    <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-money-bill-trend-up text-xl text-emerald-200"></i>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 font-bold mt-2">اختار القبضة اللي عاوز تتابعها (أو حدد فترة بنفسك)، وشوف الفلوس دي اتوزعت فين واتصرفت على إيه لحد النهاردة.</p>
+                <div class="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-3">
+                    <div><p class="text-[10px] font-bold text-slate-400 mb-0.5">دخل الفترة</p><p class="text-lg font-black text-emerald-300" id="inc-total-in">0</p></div>
+                    <div><p class="text-[10px] font-bold text-slate-400 mb-0.5">مصروف الفترة</p><p class="text-lg font-black text-rose-300" id="inc-total-out">0</p></div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-white/10">
+                    <div class="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-1.5">
+                        <span>اتصرف من الدخل</span><span id="inc-burn-label">0%</span>
+                    </div>
+                    <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden"><div id="inc-burn-bar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-rose-400" style="width:0%"></div></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-1"><i class="fa-solid fa-hand-holding-dollar text-emerald-500 ml-1"></i> اختار القبضة</h3>
+                <p class="text-[11px] text-slate-400 font-bold mb-3">دوس على أي قبضة عشان تبدأ المتابعة من يومها.</p>
+                <div id="inc-income-list" class="space-y-2 max-h-56 overflow-y-auto mb-4"></div>
+                <div class="border-t border-slate-100 pt-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="date" id="inc-from" onchange="renderIncomeTracker()" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold">
+                        <span class="text-[10px] font-black text-slate-400">إلى</span>
+                        <input type="date" id="inc-to" onchange="renderIncomeTracker()" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold">
+                    </div>
+                    <div class="flex flex-wrap gap-1.5" id="inc-period-quick"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3"><i class="fa-solid fa-box-archive text-brand-500 ml-1"></i> اتوزع فين على الجيوب</h3>
+                <div id="inc-envelope-split" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3"><i class="fa-solid fa-chart-pie text-rose-500 ml-1"></i> اتصرف على إيه</h3>
+                <div id="inc-spend-breakdown" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-extrabold text-slate-800"><i class="fa-solid fa-list text-slate-400 ml-1"></i> كل حركات الفترة</h3>
+                    <span id="inc-tx-count" class="text-[10px] font-bold text-slate-400"></span>
+                </div>
+                <div id="inc-tx-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
             </div>
         </div>
 
@@ -824,6 +903,25 @@
                     <select id="home-balance-envelope" onchange="setHomeBalanceEnvelope(this.value)" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold"></select>
                 </div>
                 <div id="home-balance-envelopes-wrap" class="hidden space-y-2"></div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <h3 class="font-extrabold text-slate-800 mb-1"><i class="fa-solid fa-arrow-down-up-across-line text-brand-600 ml-1"></i> ترتيب الشاشات</h3>
+                <p class="text-[11px] text-slate-400 font-bold mb-4 leading-relaxed">رتّب المربعات في الشاشة الرئيسية وترتيب التبويبات في الشريط اللي فوق زي ما يريحك.</p>
+                <div class="mb-5">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-black text-slate-600">مربعات الشاشة الرئيسية</h4>
+                        <button onclick="resetOrder('home')" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">رجّع الافتراضي</button>
+                    </div>
+                    <div id="order-home-list" class="bg-slate-50 rounded-2xl border border-slate-100 px-3"></div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-black text-slate-600">تبويبات الشريط العلوي</h4>
+                        <button onclick="resetOrder('tabs')" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">رجّع الافتراضي</button>
+                    </div>
+                    <div id="order-tabs-list" class="bg-slate-50 rounded-2xl border border-slate-100 px-3"></div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -925,8 +1023,15 @@
                     <label class="text-xs font-bold text-slate-500 mb-1 block">الفلوس دي رايحة فين؟</label>
                     <select id="env-move-kind" onchange="toggleEnvMoveSpendFields()" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
                         <option value="spend">صرف عادي (بره التطبيق)</option>
+                        <option value="cash">سحب كاش (الفلوس تبقى معايا في الخزنة)</option>
                         <option value="person">تحويل لشخص عندي في التطبيق</option>
                     </select>
+                </div>
+                <div id="env-move-cash-fields" class="hidden space-y-4">
+                    <div><label class="text-xs font-bold text-rose-500 mb-1 block">هتسحب منين؟ (البنك/المحفظة اللي هيقل رصيدها)</label><select id="env-move-cash-from" class="w-full p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-sm font-bold text-rose-800"></select></div>
+                    <div><label class="text-xs font-bold text-amber-600 mb-1 block">الكاش هيروح فين؟</label><select id="env-move-cash-to" class="w-full p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800"></select></div>
+                    <label class="flex items-start gap-2 text-[11px] font-bold text-slate-500 bg-slate-50 p-3 rounded-2xl cursor-pointer"><input type="checkbox" id="env-move-cash-keep" class="mt-0.5 w-4 h-4 accent-brand-600 rounded"> سيب المبلغ لسه محجوز في الجيب (سحبته كاش بس هو لسه متخصص لنفس الغرض)</label>
+                    <p class="text-[11px] font-bold text-slate-400 leading-relaxed bg-slate-50 p-3 rounded-2xl">هيتسجل سحب فعلي: رصيد البنك/المحفظة هيقل، والكاش هيزيد بنفس المبلغ. وافتراضياً الجيب هيقل كمان لأن الفلوس خرجت منه، إلا لو علّمت إنها لسه محجوزة.</p>
                 </div>
                 <div id="env-move-spend-fields" class="hidden space-y-4">
                     <div><label class="text-xs font-bold text-rose-500 mb-1 block">هتصرف منين فعلياً؟</label><select id="env-move-source" class="w-full p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-sm font-bold text-rose-800"></select></div>
@@ -952,12 +1057,47 @@
                 <div class="flex gap-2">
                     <button onclick="openEnvelopeMoveModal('in', {envelopeId: document.getElementById('env-stmt-id').value})" class="text-[11px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-xl">تخصيص</button>
                     <button onclick="openEnvelopeMoveModal('out', {envelopeId: document.getElementById('env-stmt-id').value})" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl">اصرف</button>
+                    <button onclick="openEnvelopeMoveModal('out', {envelopeId: document.getElementById('env-stmt-id').value, kind:'cash'})" class="text-[11px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl">اسحب كاش</button>
                     <button onclick="openEnvelopeTransferModal(document.getElementById('env-stmt-id').value)" class="text-[11px] font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">حوّل لجيب تاني</button>
                 </div>
             </div>
             <input type="hidden" id="env-stmt-id">
-            <p class="text-xs text-slate-400 font-bold mb-4">رصيد الجيب دلوقتي: <span class="font-black text-slate-700" id="env-stmt-balance">0 ج.م</span></p>
-            <div id="env-stmt-list" class="space-y-0 max-h-[55vh] overflow-y-auto"></div>
+            <p class="text-xs text-slate-400 font-bold mb-3">رصيد الجيب دلوقتي: <span class="font-black text-slate-700" id="env-stmt-balance">0 ج.م</span></p>
+            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="date" id="env-stmt-from" onchange="renderEnvelopeStatementList()" class="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold">
+                    <span class="text-[10px] font-black text-slate-400">إلى</span>
+                    <input type="date" id="env-stmt-to" onchange="renderEnvelopeStatementList()" class="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold">
+                </div>
+                <div class="flex flex-wrap gap-1.5" id="env-stmt-quick"></div>
+                <p id="env-stmt-period-stats" class="hidden text-[11px] font-bold text-slate-500 mt-2 pt-2 border-t border-slate-200"></p>
+            </div>
+            <div id="env-stmt-list" class="space-y-0 max-h-[48vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <div id="envelopeTxEditModal" class="modal no-print" onclick="if(event.target===this) closeModal('envelopeTxEditModal')">
+        <div class="modal-content">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5"></div>
+            <h3 class="font-black text-xl mb-1 text-slate-800">تعديل حركة الجيب</h3>
+            <p class="text-xs text-slate-400 font-bold mb-5">غيّر المبلغ أو التاريخ أو البيان، ورصيد الجيب هيتظبط تلقائي.</p>
+            <input type="hidden" id="etx-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 mb-1 block">نوع الحركة</label>
+                    <select id="etx-type" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
+                        <option value="in">تخصيص للجيب (+)</option>
+                        <option value="out">خصم من الجيب (-)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="etx-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
+                    <input type="date" id="etx-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
+                </div>
+                <input type="text" id="etx-note" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" placeholder="البيان">
+                <p id="etx-link-note" class="hidden text-[11px] font-bold text-brand-600 bg-brand-50 p-3 rounded-2xl leading-relaxed"></p>
+                <button onclick="saveEnvelopeTxEdit()" class="w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:brightness-110 text-white py-4 rounded-2xl font-black transition-all mt-2">حفظ التعديل</button>
+            </div>
         </div>
     </div>
 
@@ -1263,7 +1403,9 @@
             envelopes: [],
             envelopeTransactions: [],
             budgets: {},
-            homeBalanceMode: { type: 'total', envelopeId: '', envelopeIds: [] }
+            homeBalanceMode: { type: 'total', envelopeId: '', envelopeIds: [] },
+            homeCardOrder: [],
+            tabOrder: []
         };
 
         const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'];
@@ -1280,6 +1422,9 @@
         if(!db.budgets) db.budgets = {};
         if(!db.homeBalanceMode) db.homeBalanceMode = { type: 'total', envelopeId: '', envelopeIds: [] };
         if(!db.homeBalanceMode.envelopeIds) db.homeBalanceMode.envelopeIds = [];
+        if(!Array.isArray(db.homeCardOrder)) db.homeCardOrder = [];
+        if(!Array.isArray(db.tabOrder)) db.tabOrder = [];
+        db.envelopeTransactions.forEach(t => { if(!Array.isArray(t.links)) t.links = []; });
         let currentCashTxType = 'out';
         
         let currentTab = 'home'; let currentPersonId = null; let currentTxType = 'out'; let expenseChartInstance = null; 
@@ -1296,28 +1441,79 @@
         const today = new Date();
         document.getElementById('print-date').innerText = `تاريخ الإصدار: ${today.toLocaleDateString('ar-EG')} - الساعة: ${today.toLocaleTimeString('ar-EG')}`;
 
+        // ====== ترتيب الكروت والتبويبات ======
+        const HOME_CARD_KEYS = ['merged','income','assistant','tx','gam3eya','analysis','visa','settings','persons','cash','envelopes'];
+        const TAB_KEYS = ['home','merged','assistant','tx','persons','cash','envelopes','income','gam3eya','analysis','visa','settings'];
+        const ORDER_LABELS = {
+            merged: '🧾 الملخص', income: '💸 متابعة الدخل', assistant: '🤖 المساعد الذكي', tx: '➕ تسجيل عملية',
+            gam3eya: '👥 الجمعيات', analysis: '📊 التحليل', visa: '💳 الفيزا', settings: '⚙️ الإعدادات',
+            persons: '👤 كروت الأشخاص', cash: '💰 الخزنة الشخصية', envelopes: '🧧 الجيوب', home: '🏠 الرئيسية'
+        };
+        // بنرجّع الترتيب المحفوظ، وأي مفتاح جديد اتضاف في تحديث بيتحط في آخر القايمة تلقائي
+        function orderedKeys(stored, canonical) {
+            let valid = (stored || []).filter(k => canonical.includes(k));
+            let missing = canonical.filter(k => !valid.includes(k));
+            return valid.concat(missing);
+        }
+        function getHomeCardOrder() { return orderedKeys(db.homeCardOrder, HOME_CARD_KEYS); }
+        function getTabOrder() { return orderedKeys(db.tabOrder, TAB_KEYS); }
+        function moveOrderItem(which, key, dir) {
+            let canonical = which === 'home' ? HOME_CARD_KEYS : TAB_KEYS;
+            let list = orderedKeys(which === 'home' ? db.homeCardOrder : db.tabOrder, canonical);
+            let i = list.indexOf(key); if(i === -1) return;
+            let j = dir === 'up' ? i - 1 : i + 1;
+            if(j < 0 || j >= list.length) return;
+            [list[i], list[j]] = [list[j], list[i]];
+            if(which === 'home') db.homeCardOrder = list; else db.tabOrder = list;
+            saveApp(); renderOrderSettings();
+            if(which === 'home') renderHome(); else buildDynamicTabs();
+        }
+        function resetOrder(which) {
+            if(which === 'home') db.homeCardOrder = HOME_CARD_KEYS.slice(); else db.tabOrder = TAB_KEYS.slice();
+            saveApp(); renderOrderSettings();
+            if(which === 'home') renderHome(); else buildDynamicTabs();
+        }
+        function renderOrderSettings() {
+            let build = (which, list) => list.map((key, idx) => `
+                <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-50 last:border-0">
+                    <span class="text-xs font-bold text-slate-700">${ORDER_LABELS[key] || key}</span>
+                    <div class="flex gap-1 flex-shrink-0">
+                        <button onclick="moveOrderItem('${which}','${key}','up')" ${idx === 0 ? 'disabled' : ''} class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
+                        <button onclick="moveOrderItem('${which}','${key}','down')" ${idx === list.length - 1 ? 'disabled' : ''} class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
+                    </div>
+                </div>`).join('');
+            let homeEl = document.getElementById('order-home-list');
+            let tabEl = document.getElementById('order-tabs-list');
+            if(homeEl) homeEl.innerHTML = build('home', getHomeCardOrder());
+            if(tabEl) tabEl.innerHTML = build('tabs', getTabOrder());
+        }
+
         function buildDynamicTabs() {
             const nav = document.getElementById('mainTabs');
             let btnClasses = "px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap flex-shrink-0 transition-all duration-200 flex items-center gap-2 ";
             let activeClasses = "bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white shadow-glow";
             let inactiveClasses = "bg-white text-slate-500 border border-slate-100 shadow-card hover:text-brand-700 hover:border-brand-200 hover:-translate-y-0.5";
 
-            nav.innerHTML = `<button class="${btnClasses} ${currentTab==='home'?activeClasses:inactiveClasses}" onclick="switchPage('home', this)"><i class="fa-solid fa-house"></i> الرئيسية</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='merged'?activeClasses:inactiveClasses}" onclick="switchPage('merged', this)"><i class="fa-solid fa-layer-group"></i> الملخص</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='assistant'?activeClasses:inactiveClasses}" onclick="switchPage('assistant', this)"><i class="fa-solid fa-robot"></i> المساعد الذكي</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='tx'?activeClasses:inactiveClasses}" onclick="switchPage('tx')"><i class="fa-solid fa-plus"></i> تسجيل عملية</button>`;
-            db.persons.forEach(p => {
-                let isActive = (currentTab === 'person' && currentPersonId === p.id);
-                let dot = `<div class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></div>`;
-                nav.innerHTML += `<button class="${btnClasses} ${isActive?activeClasses:inactiveClasses}" onclick="openPersonLedger('${p.id}', this)">${dot} ${p.name}</button>`;
-            });
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='cash'?activeClasses:inactiveClasses}" onclick="switchPage('cash', this)"><i class="fa-solid fa-sack-dollar"></i> الخزنة الشخصية</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='envelopes'?activeClasses:inactiveClasses}" onclick="switchPage('envelopes', this)"><i class="fa-solid fa-box-archive"></i> الجيوب</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='gam3eya'?activeClasses:inactiveClasses}" onclick="switchPage('gam3eya', this)"><i class="fa-solid fa-people-arrows"></i> الجمعيات</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='analysis'?activeClasses:inactiveClasses}" onclick="switchPage('analysis', this)"><i class="fa-solid fa-chart-pie"></i> التحليل</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='visa'?activeClasses:inactiveClasses}" onclick="switchPage('visa', this)"><i class="fa-brands fa-cc-visa"></i> الفيزا</button>`;
-            nav.innerHTML += `<button class="${btnClasses} ${currentTab==='settings'?activeClasses:inactiveClasses}" onclick="switchPage('settings', this)"><i class="fa-solid fa-gear"></i> الإعدادات</button>`;
-            nav.innerHTML += `<div class="w-2 flex-shrink-0"></div>`;
+            let tabBtn = (pageId, icon, label, brand) => `<button class="${btnClasses} ${currentTab===pageId?activeClasses:inactiveClasses}" onclick="switchPage('${pageId}', this)"><i class="fa-${brand?'brands':'solid'} ${icon}"></i> ${label}</button>`;
+            let parts = {
+                home: () => tabBtn('home', 'fa-house', 'الرئيسية'),
+                merged: () => tabBtn('merged', 'fa-layer-group', 'الملخص'),
+                assistant: () => tabBtn('assistant', 'fa-robot', 'المساعد الذكي'),
+                tx: () => tabBtn('tx', 'fa-plus', 'تسجيل عملية'),
+                persons: () => db.persons.map(p => {
+                    let isActive = (currentTab === 'person' && currentPersonId === p.id);
+                    let dot = `<div class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></div>`;
+                    return `<button class="${btnClasses} ${isActive?activeClasses:inactiveClasses}" onclick="openPersonLedger('${p.id}', this)">${dot} ${p.name}</button>`;
+                }).join(''),
+                cash: () => tabBtn('cash', 'fa-sack-dollar', 'الخزنة الشخصية'),
+                envelopes: () => tabBtn('envelopes', 'fa-box-archive', 'الجيوب'),
+                income: () => tabBtn('income', 'fa-money-bill-trend-up', 'متابعة الدخل'),
+                gam3eya: () => tabBtn('gam3eya', 'fa-people-arrows', 'الجمعيات'),
+                analysis: () => tabBtn('analysis', 'fa-chart-pie', 'التحليل'),
+                visa: () => tabBtn('visa', 'fa-cc-visa', 'الفيزا', true),
+                settings: () => tabBtn('settings', 'fa-gear', 'الإعدادات')
+            };
+            nav.innerHTML = getTabOrder().map(k => parts[k] ? parts[k]() : '').join('') + `<div class="w-2 flex-shrink-0"></div>`;
         }
 
         function switchPage(pageId, btnElement) {
@@ -1330,6 +1526,7 @@
             if(pageId === 'cash') renderCashSafe();
             if(pageId === 'envelopes') renderEnvelopes();
             if(pageId === 'gam3eya') renderGam3eya();
+            if(pageId === 'income') renderIncomeTracker();
             if(pageId === 'tx') renderTxPage();
             if(pageId === 'assistant') { renderAssistantQuickChips(); scrollAssistantToBottom(); document.getElementById('assistant-input').focus(); }
             let fab = document.getElementById('assistant-fab'); if(fab) fab.style.display = (pageId === 'assistant') ? 'none' : 'flex';
@@ -1345,33 +1542,33 @@
             if(typeof renderInstallCard === 'function') renderInstallCard();
 
             // كروت ثابتة: بتظهر دايماً مهما كان فيها نشاط ولا لأ
-            let cards = [];
-            cards.push({ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: 'نظرة عامة على كل حساباتك', action: "switchPage('merged')" });
-            cards.push({ id: 'assistant', icon: 'fa-robot', color: '#8b5cf6', title: 'المساعد الذكي', sub: 'اتكلم بالعامية', action: "switchPage('assistant')" });
-            cards.push({ id: 'tx', icon: 'fa-plus', color: '#ec4899', title: 'تسجيل عملية', sub: 'صرف أو قبض', action: "switchPage('tx')" });
-            cards.push({ id: 'gam3eya', icon: 'fa-people-arrows', color: '#10b981', title: 'الجمعيات', sub: db.gam3ya.list.filter(g=>g.status!=='received').length + ' نشطة', action: "switchPage('gam3eya')" });
-            cards.push({ id: 'analysis', icon: 'fa-chart-pie', color: '#4f46e5', title: 'التحليل', sub: 'مصاريفك بالتفصيل', action: "switchPage('analysis')" });
-            cards.push({ id: 'visa', icon: 'fa-cc-visa', color: '#ec4899', title: 'الفيزا', sub: 'المتابعة والأقساط', action: "switchPage('visa')", brand: true });
-            cards.push({ id: 'settings', icon: 'fa-gear', color: '#64748b', title: 'الإعدادات', sub: 'النسخ الاحتياطي وغيره', action: "switchPage('settings')" });
-
-            // كروت ديناميكية: بتظهر بس لو فيها رصيد أو عليها حركة، عشان الرئيسية متزحمش بحاجات فاضية
-            db.persons.forEach(p => {
-                let stats = (typeof getPersonStats === 'function') ? getPersonStats(p.id) : null;
-                let hasActivity = db.transactions.some(t => t.personId === p.id && !t.isArchived);
-                let hasBalance = stats && stats.total !== 0;
-                if(!hasBalance && !hasActivity) return;
-                cards.push({ id: 'person_' + p.id, icon: 'fa-user', color: p.color, title: p.name, sub: stats ? stats.total.toLocaleString() + ' ج.م' : '', action: `openPersonLedger('${p.id}')` });
-            });
+            // كروت ديناميكية (أشخاص/كاش/جيوب): بتظهر بس لو فيها رصيد أو عليها حركة، عشان الرئيسية متزحمش بحاجات فاضية
             let cashTotal = db.cashSafe.locations.reduce((s,l)=>s+l.balance,0);
             let cashHasActivity = db.cashSafe.transactions.length > 0;
-            if(cashTotal !== 0 || cashHasActivity) {
-                cards.push({ id: 'cash', icon: 'fa-sack-dollar', color: '#f59e0b', title: 'الخزنة الشخصية', sub: cashTotal.toLocaleString() + ' ج.م', action: "switchPage('cash')" });
-            }
             let envTotal = getTotalEnvelopeBalance();
             let envHasActivity = db.envelopeTransactions.length > 0;
-            if(envTotal !== 0 || envHasActivity) {
-                cards.push({ id: 'envelopes', icon: 'fa-box-archive', color: '#06b6d4', title: 'الجيوب', sub: getFreeBalance().toLocaleString() + ' ج.م متاح', action: "switchPage('envelopes')" });
-            }
+            let builders = {
+                merged: () => [{ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: 'نظرة عامة على كل حساباتك', action: "switchPage('merged')" }],
+                income: () => [{ id: 'income', icon: 'fa-money-bill-trend-up', color: '#059669', title: 'متابعة الدخل', sub: 'قبضتك راحت فين', action: "switchPage('income')" }],
+                assistant: () => [{ id: 'assistant', icon: 'fa-robot', color: '#8b5cf6', title: 'المساعد الذكي', sub: 'اتكلم بالعامية', action: "switchPage('assistant')" }],
+                tx: () => [{ id: 'tx', icon: 'fa-plus', color: '#ec4899', title: 'تسجيل عملية', sub: 'صرف أو قبض', action: "switchPage('tx')" }],
+                gam3eya: () => [{ id: 'gam3eya', icon: 'fa-people-arrows', color: '#10b981', title: 'الجمعيات', sub: db.gam3ya.list.filter(g=>g.status!=='received').length + ' نشطة', action: "switchPage('gam3eya')" }],
+                analysis: () => [{ id: 'analysis', icon: 'fa-chart-pie', color: '#4f46e5', title: 'التحليل', sub: 'مصاريفك بالتفصيل', action: "switchPage('analysis')" }],
+                visa: () => [{ id: 'visa', icon: 'fa-cc-visa', color: '#ec4899', title: 'الفيزا', sub: 'المتابعة والأقساط', action: "switchPage('visa')", brand: true }],
+                settings: () => [{ id: 'settings', icon: 'fa-gear', color: '#64748b', title: 'الإعدادات', sub: 'النسخ الاحتياطي وغيره', action: "switchPage('settings')" }],
+                persons: () => db.persons.filter(p => {
+                    let stats = (typeof getPersonStats === 'function') ? getPersonStats(p.id) : null;
+                    let hasActivity = db.transactions.some(t => t.personId === p.id && !t.isArchived);
+                    return (stats && stats.total !== 0) || hasActivity;
+                }).map(p => {
+                    let stats = getPersonStats(p.id);
+                    return { id: 'person_' + p.id, icon: 'fa-user', color: p.color, title: p.name, sub: stats.total.toLocaleString() + ' ج.م', action: `openPersonLedger('${p.id}')` };
+                }),
+                cash: () => (cashTotal !== 0 || cashHasActivity) ? [{ id: 'cash', icon: 'fa-sack-dollar', color: '#f59e0b', title: 'الخزنة الشخصية', sub: cashTotal.toLocaleString() + ' ج.م', action: "switchPage('cash')" }] : [],
+                envelopes: () => (envTotal !== 0 || envHasActivity) ? [{ id: 'envelopes', icon: 'fa-box-archive', color: '#06b6d4', title: 'الجيوب', sub: getFreeBalance().toLocaleString() + ' ج.م متاح', action: "switchPage('envelopes')" }] : []
+            };
+            let cards = [];
+            getHomeCardOrder().forEach(k => { if(builders[k]) cards = cards.concat(builders[k]()); });
 
             document.getElementById('home-grid').innerHTML = cards.map(c => `
                 <button onclick="${c.action}" class="bg-white rounded-3xl border border-slate-100 shadow-soft p-5 flex flex-col items-center text-center gap-2 hover:-translate-y-1 hover:shadow-glow transition-all">
@@ -1770,8 +1967,8 @@
             let personId = document.getElementById('ta-person').value || db.persons[0].id;
             if (fromId === toId) { Swal.fire('تنبيه', 'لا يمكن التحويل لنفس الخزنة!', 'warning'); return; }
             if (!amt || amt <= 0) { Swal.fire('خطأ', 'أدخل مبلغ صحيح', 'error'); return; }
-            db.transactions.push({ id: generateId(), accountId: fromId, personId: personId, type: 'out', amount: amt, fee: fee, feePayer: 'account', category: '', date: date, note: `تحويل صادر إلى ${db.accounts.find(a=>a.id===toId).name}`, isArchived: false });
-            db.transactions.push({ id: generateId(), accountId: toId, personId: personId, type: 'in', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل وارد من ${db.accounts.find(a=>a.id===fromId).name}`, isArchived: false });
+            db.transactions.push({ id: generateId(), accountId: fromId, personId: personId, type: 'out', amount: amt, fee: fee, feePayer: 'account', category: '', date: date, note: `تحويل صادر إلى ${db.accounts.find(a=>a.id===toId).name}`, isArchived: false, isTransfer: true });
+            db.transactions.push({ id: generateId(), accountId: toId, personId: personId, type: 'in', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل وارد من ${db.accounts.find(a=>a.id===fromId).name}`, isArchived: false, isTransfer: true });
             recalculateAllAccountBalances(); closeModal('transferAccModal'); saveApp();
         }
 
@@ -1782,8 +1979,8 @@
             if(fromVal === toVal) { Swal.fire('تنبيه', 'لا يمكن التحويل لنفس المكان!', 'warning'); return; }
             if(!amt || amt <= 0) { Swal.fire('خطأ', 'أدخل مبلغ صحيح', 'error'); return; }
             let fromLabel = getSourceLabel(fromVal); let toLabel = getSourceLabel(toVal);
-            applyMoneyOut(fromVal, amt, date, `تحويل صادر إلى ${toLabel}`);
-            applyMoneyIn(toVal, amt - fee, date, `تحويل وارد من ${fromLabel}`);
+            applyMoneyOut(fromVal, amt, date, `تحويل صادر إلى ${toLabel}`, undefined, true);
+            applyMoneyIn(toVal, amt - fee, date, `تحويل وارد من ${fromLabel}`, undefined, true);
             closeModal('transferAccCashModal'); saveApp();
         }
 
@@ -1996,15 +2193,17 @@
             if(type === 'acc') { let a = db.accounts.find(x => x.id === id); return a ? `${a.icon} ${a.name}` : '⚠️ خزنة محذوفة'; }
             let l = db.cashSafe.locations.find(x => x.id === id); return l ? `${l.icon} ${l.name}` : '⚠️ مكان محذوف';
         }
-        function applyMoneyOut(typeVal, amount, date, note, personId) {
+        // isTransfer = الحركة دي مجرد نقل فلوس بين أماكنك انت (مش دخل ولا صرف حقيقي)،
+        // عشان متزوّدش أرقام الدخل والمصروف في متابعة الدخل بالغلط
+        function applyMoneyOut(typeVal, amount, date, note, personId, isTransfer) {
             let [type, id] = typeVal.split(':'); let txId = generateId();
-            if(type === 'acc') { db.transactions.push({ id: txId, personId: personId || db.persons[0].id, accountId: id, type: 'out', amount, date, note }); recalculateAllAccountBalances(); return { kind: 'acc', txId }; }
-            db.cashSafe.transactions.push({ id: txId, locationId: id, type: 'out', amount, date, note }); recalcCashSafeBalances(); return { kind: 'cash', txId };
+            if(type === 'acc') { db.transactions.push({ id: txId, personId: personId || db.persons[0].id, accountId: id, type: 'out', amount, date, note, isTransfer: !!isTransfer }); recalculateAllAccountBalances(); return { kind: 'acc', txId }; }
+            db.cashSafe.transactions.push({ id: txId, locationId: id, type: 'out', amount, date, note, isTransfer: !!isTransfer }); recalcCashSafeBalances(); return { kind: 'cash', txId };
         }
-        function applyMoneyIn(typeVal, amount, date, note, personId) {
+        function applyMoneyIn(typeVal, amount, date, note, personId, isTransfer) {
             let [type, id] = typeVal.split(':'); let txId = generateId();
-            if(type === 'acc') { db.transactions.push({ id: txId, personId: personId || db.persons[0].id, accountId: id, type: 'in', amount, date, note }); recalculateAllAccountBalances(); return { kind: 'acc', txId }; }
-            db.cashSafe.transactions.push({ id: txId, locationId: id, type: 'in', amount, date, note }); recalcCashSafeBalances(); return { kind: 'cash', txId };
+            if(type === 'acc') { db.transactions.push({ id: txId, personId: personId || db.persons[0].id, accountId: id, type: 'in', amount, date, note, isTransfer: !!isTransfer }); recalculateAllAccountBalances(); return { kind: 'acc', txId }; }
+            db.cashSafe.transactions.push({ id: txId, locationId: id, type: 'in', amount, date, note, isTransfer: !!isTransfer }); recalcCashSafeBalances(); return { kind: 'cash', txId };
         }
         function personOptionsHtml(selectedId) {
             return db.persons.map(p => `<option value="${p.id}" ${selectedId===p.id?'selected':''}>${p.id===db.persons[0].id ? '👑 ' : ''}${p.name}</option>`).join('');
@@ -2021,15 +2220,40 @@
                 e.balance = db.envelopeTransactions.filter(t => t.envelopeId === e.id).reduce((s,t) => s + (t.type === 'in' ? t.amount : -t.amount), 0);
             });
         }
-        function applyEnvelopeIn(envelopeId, amount, date, note) {
+        // ---------- فلاتر التواريخ (مشتركة بين التحليل والجيوب ومتابعة الدخل) ----------
+        function inDateRange(dateStr, from, to) {
+            if(!dateStr) return !from && !to;
+            let d = dateStr.slice(0,10);
+            if(from && d < from) return false;
+            if(to && d > to) return false;
+            return true;
+        }
+        function quickRange(kind) {
+            let now = new Date();
+            let pad = n => String(n).padStart(2,'0');
+            let fmt = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+            if(kind === 'all') return { from: '', to: '' };
+            if(kind === 'this-month') return { from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)), to: fmt(new Date(now.getFullYear(), now.getMonth()+1, 0)) };
+            if(kind === 'last-month') return { from: fmt(new Date(now.getFullYear(), now.getMonth()-1, 1)), to: fmt(new Date(now.getFullYear(), now.getMonth(), 0)) };
+            if(kind === 'last-3') return { from: fmt(new Date(now.getFullYear(), now.getMonth()-2, 1)), to: fmt(now) };
+            if(kind === 'this-year') return { from: `${now.getFullYear()}-01-01`, to: fmt(now) };
+            return { from: '', to: '' };
+        }
+        function quickRangeButtonsHtml(fnName) {
+            let opts = [['this-month','الشهر ده'],['last-month','الشهر اللي فات'],['last-3','آخر 3 شهور'],['this-year','السنة دي'],['all','الكل']];
+            return opts.map(([k,label]) => `<button onclick="${fnName}('${k}')" class="text-[10px] font-black text-slate-600 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 px-2.5 py-1.5 rounded-lg transition-all">${label}</button>`).join('');
+        }
+
+        // links = مصفوفة مراجع للحركات الحقيقية المرتبطة بالحركة دي (عشان التعديل والحذف يمسّوا الاتنين مع بعض)
+        function applyEnvelopeIn(envelopeId, amount, date, note, links) {
             let txId = generateId();
-            db.envelopeTransactions.push({ id: txId, envelopeId, type: 'in', amount, date, note });
+            db.envelopeTransactions.push({ id: txId, envelopeId, type: 'in', amount, date, note, links: links || [] });
             recalcEnvelopeBalances();
             return txId;
         }
-        function applyEnvelopeOut(envelopeId, amount, date, note) {
+        function applyEnvelopeOut(envelopeId, amount, date, note, links) {
             let txId = generateId();
-            db.envelopeTransactions.push({ id: txId, envelopeId, type: 'out', amount, date, note });
+            db.envelopeTransactions.push({ id: txId, envelopeId, type: 'out', amount, date, note, links: links || [] });
             recalcEnvelopeBalances();
             return txId;
         }
@@ -2110,9 +2334,12 @@
             document.getElementById('env-move-source').innerHTML = generateSourceOptions();
             document.getElementById('env-move-category').innerHTML = '<option value="">بدون تصنيف</option>' + db.categories.out.map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById('env-move-correction').checked = false;
-            document.getElementById('env-move-kind').value = 'spend';
+            document.getElementById('env-move-kind').value = prefill.kind || 'spend';
             document.getElementById('env-move-person').innerHTML = db.persons.filter(p => p.id !== db.persons[0].id).map(p => `<option value="${p.id}">${p.name}</option>`).join('') || '<option value="">-- مفيش أشخاص تانيين --</option>';
             document.getElementById('env-move-person-acc').innerHTML = db.accounts.map(a => `<option value="${a.id}">${a.icon} ${a.name} (${a.balance.toLocaleString()})</option>`).join('');
+            document.getElementById('env-move-cash-from').innerHTML = generateSourceOptions();
+            document.getElementById('env-move-cash-to').innerHTML = db.cashSafe.locations.map(l => `<option value="${l.id}">${l.icon} ${l.name} (${l.balance.toLocaleString()})</option>`).join('') || '<option value="">-- مفيش أماكن كاش --</option>';
+            document.getElementById('env-move-cash-keep').checked = false;
             if(direction === 'in') {
                 document.getElementById('env-move-title').innerText = 'تخصيص فلوس لجيب';
                 document.getElementById('env-move-desc').innerText = 'المبلغ ده هيتحسب مخصص وهيتقل من "الفلوس اللي تنفع تصرفها"، بس هيفضل مكانه في حسابك/كاشك زي ما هو - مفيش أي صرف فعلي دلوقتي.';
@@ -2139,6 +2366,7 @@
             document.getElementById('env-move-kind-wrap').classList.toggle('hidden', !isRealMove);
             document.getElementById('env-move-spend-fields').classList.toggle('hidden', !(isRealMove && kind === 'spend'));
             document.getElementById('env-move-person-fields').classList.toggle('hidden', !(isRealMove && kind === 'person'));
+            document.getElementById('env-move-cash-fields').classList.toggle('hidden', !(isRealMove && kind === 'cash'));
         }
         function confirmEnvelopeMove() {
             let direction = document.getElementById('env-move-direction').value;
@@ -2152,10 +2380,36 @@
             if(direction === 'out' && e && amount > e.balance) { Swal.fire('خطأ', `مفيش في الجيب ده غير ${e.balance.toLocaleString()} ج.م بس`, 'error'); return; }
             let didSpend = false;
             let didTransfer = false;
+            let didCash = false;
+            let keepEarmarked = false;
+            let cashMsg = '';
+            let envLinks = [];
             let transferToName = '';
             let envNote = note;
             let kind = document.getElementById('env-move-kind').value;
-            if(direction === 'out' && !isCorrection && kind === 'person') {
+            if(direction === 'out' && !isCorrection && kind === 'cash') {
+                // سحب كاش: فلوس حقيقية بتتنقل من البنك/المحفظة للخزنة الشخصية
+                let fromVal = document.getElementById('env-move-cash-from').value;
+                let toLocId = document.getElementById('env-move-cash-to').value;
+                if(!fromVal) { Swal.fire('خطأ', 'حدد هتسحب منين', 'error'); return; }
+                if(!toLocId) { Swal.fire('محتاج مكان كاش', 'ضيف مكان كاش من الإعدادات الأول.', 'info'); return; }
+                if(fromVal === 'cash:' + toLocId) { Swal.fire('تنبيه', 'مينفعش تسحب من نفس مكان الكاش لنفسه', 'warning'); return; }
+                keepEarmarked = document.getElementById('env-move-cash-keep').checked;
+                let userNote = document.getElementById('env-move-note').value;
+                let fromLabel = getSourceLabel(fromVal);
+                let toLoc = db.cashSafe.locations.find(l => l.id === toLocId);
+                let baseNote = `سحب كاش من جيب ${e.name}${userNote ? ' - ' + userNote : ''}`;
+                let outRef = applyMoneyOut(fromVal, amount, date, `${baseNote} → ${toLoc.icon} ${toLoc.name}`, undefined, true);
+                let inRef = { kind: 'cash', txId: generateId() };
+                db.cashSafe.transactions.push({ id: inRef.txId, locationId: toLocId, type: 'in', amount, date, note: `${baseNote} (من ${fromLabel})`, isTransfer: true });
+                recalcCashSafeBalances();
+                envLinks = [outRef, inRef];
+                envNote = `سحب كاش: ${fromLabel} → ${toLoc.icon} ${toLoc.name}${userNote ? ' - ' + userNote : ''}`;
+                didCash = true;
+                cashMsg = keepEarmarked
+                    ? ` المبلغ بقى كاش في <b>${toLoc.name}</b> وسايب محجوز في الجيب زي ما طلبت.`
+                    : ` المبلغ بقى كاش في <b>${toLoc.name}</b> واتخصم من الجيب.`;
+            } else if(direction === 'out' && !isCorrection && kind === 'person') {
                 // تحويل من الجيب لشخص تاني في التطبيق: بينقل ملكية الفلوس + بيقلل الجيب
                 let toPersonId = document.getElementById('env-move-person').value;
                 let accId = document.getElementById('env-move-person-acc').value;
@@ -2171,16 +2425,21 @@
                 let category = document.getElementById('env-move-category').value;
                 let sourceLabel = getSourceLabel(sourceVal);
                 let userNote = document.getElementById('env-move-note').value;
-                applyMoneyOut(sourceVal, amount, date, `صرف من جيب ${e.name}${category ? ' - ' + category : ''}${userNote ? ' - ' + userNote : ''}`);
+                let outRef = applyMoneyOut(sourceVal, amount, date, `صرف من جيب ${e.name}${category ? ' - ' + category : ''}${userNote ? ' - ' + userNote : ''}`);
+                if(outRef) envLinks = [outRef];
                 envNote = `صرف من ${sourceLabel}${category ? ' - ' + category : ''}${userNote ? ' - ' + userNote : ''}`;
                 didSpend = true;
             }
             // في حالة التحويل لشخص، خصم الجيب بيحصل جوه applyPersonTransfer نفسها
-            if(!didTransfer) { if(direction === 'in') applyEnvelopeIn(envelopeId, amount, date, note); else applyEnvelopeOut(envelopeId, amount, date, envNote); }
+            // وفي حالة السحب الكاش مع "سيبه محجوز"، الجيب مبيتقلش لأن الفلوس لسه متخصصة لنفس الغرض
+            if(!didTransfer && !(didCash && keepEarmarked)) {
+                if(direction === 'in') applyEnvelopeIn(envelopeId, amount, date, note, envLinks);
+                else applyEnvelopeOut(envelopeId, amount, date, envNote, envLinks);
+            }
             closeModal('envelopeMoveModal'); saveApp();
             let stmtModal = document.getElementById('envelopeStatementModal');
             if(stmtModal && stmtModal.classList.contains('active')) openEnvelopeStatement(envelopeId);
-            let extraMsg = didTransfer ? ` واتحول المبلغ لحساب <b>${transferToName}</b>.` : (didSpend ? ' وانخصم المبلغ فعلياً من رصيدك.' : '');
+            let extraMsg = didTransfer ? ` واتحول المبلغ لحساب <b>${transferToName}</b>.` : (didCash ? cashMsg : (didSpend ? ' وانخصم المبلغ فعلياً من رصيدك.' : ''));
             Swal.fire(direction === 'in' ? 'تم التخصيص ✅' : 'تم ✅', `جيب <b>${e.name}</b> بقى رصيده <b>${e.balance.toLocaleString()}</b> ج.م.${extraMsg}`, 'success');
         }
 
@@ -2241,10 +2500,30 @@
                 let cashTotal = db.cashSafe.locations.reduce((s,l) => s + l.balance, 0);
                 splitEl.innerText = `فلوسك موزّعة: ${bankTotal.toLocaleString()} بنك • ${cashTotal.toLocaleString()} كاش (الرقمين دول إجمالي زي ما هو، من غير خصم الجيوب ولا فلوس عملاء تانيين)`;
             }
+            let quickEl = document.getElementById('env-period-quick');
+            if(quickEl && !quickEl.innerHTML) quickEl.innerHTML = quickRangeButtonsHtml('setEnvPeriodQuickRange');
+            let pFrom = document.getElementById('env-period-from') ? document.getElementById('env-period-from').value : '';
+            let pTo = document.getElementById('env-period-to') ? document.getElementById('env-period-to').value : '';
+            let hasPeriod = !!(pFrom || pTo);
+            let labelEl = document.getElementById('env-period-label');
+            if(labelEl) labelEl.innerText = hasPeriod ? `${pFrom || 'البداية'} ← ${pTo || 'النهاية'}` : 'كل الفترات';
             if(db.envelopes.length === 0) {
                 document.getElementById('env-list').innerHTML = `<div class="col-span-2 bg-white p-10 rounded-3xl border border-slate-100 text-center"><i class="fa-solid fa-box-archive text-3xl text-slate-300 mb-3"></i><p class="text-sm font-bold text-slate-400">لسه مفيش جيوب. دوس "جيب جديد" عشان تبدأ تخصص فلوسك (ادخار، فلوس بيت، إلخ).</p></div>`;
             } else {
-                document.getElementById('env-list').innerHTML = db.envelopes.map(e => `
+                document.getElementById('env-list').innerHTML = db.envelopes.map(e => {
+                    let periodHtml = '';
+                    if(hasPeriod) {
+                        let pIn = 0, pOut = 0;
+                        db.envelopeTransactions.forEach(t => {
+                            if(t.envelopeId !== e.id || !inDateRange(t.date, pFrom, pTo)) return;
+                            if(t.type === 'in') pIn += t.amount; else pOut += t.amount;
+                        });
+                        periodHtml = `<div class="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[10px] font-black">
+                            <span class="text-emerald-600">+${pIn.toLocaleString()}</span>
+                            <span class="text-rose-600">-${pOut.toLocaleString()}</span>
+                        </div>`;
+                    }
+                    return `
                     <div onclick="openEnvelopeStatement('${e.id}')" class="cursor-pointer bg-white rounded-3xl border border-slate-100 shadow-soft p-4 hover:border-brand-200 hover:shadow-glow hover:-translate-y-0.5 transition-all">
                         <div class="flex justify-between items-start mb-2">
                             <div class="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center text-lg flex-shrink-0">${e.icon}</div>
@@ -2255,38 +2534,129 @@
                         </div>
                         <p class="text-xs font-bold text-slate-400 mb-0.5">${e.name}</p>
                         <p class="text-lg font-black text-slate-800">${e.balance.toLocaleString()} <span class="text-xs text-slate-400">ج.م</span></p>
-                    </div>`).join('');
-            }
-            let recent = db.envelopeTransactions.slice().reverse().slice(0, 15);
-            if(recent.length === 0) {
-                document.getElementById('env-recent-list').innerHTML = `<p class="text-xs text-slate-400 text-center py-6 font-bold">لسه مفيش حركات جيوب.</p>`;
-            } else {
-                document.getElementById('env-recent-list').innerHTML = recent.map(t => {
-                    let e = db.envelopes.find(x => x.id === t.envelopeId);
-                    return `<div class="bg-white p-3.5 rounded-2xl border border-slate-100 flex justify-between items-center">
-                        <div><p class="font-bold text-sm text-slate-700">${e ? e.icon+' '+e.name : '⚠️ جيب محذوف'}</p><p class="text-[11px] text-slate-400 font-bold">${t.date}${t.note ? ' • '+t.note : ''}</p></div>
-                        <span class="font-black text-sm ${t.type==='in'?'text-amber-600':'text-emerald-600'}">${t.type==='in'?'-':'+'}${t.amount.toLocaleString()}</span>
+                        ${periodHtml}
                     </div>`;
                 }).join('');
             }
         }
-        function openEnvelopeStatement(envelopeId) {
+        function openEnvelopeStatement(envelopeId, keepFilter) {
             let e = db.envelopes.find(x => x.id === envelopeId); if(!e) return;
             document.getElementById('env-stmt-id').value = envelopeId;
             document.getElementById('env-stmt-title').innerText = `${e.icon} ${e.name}`;
             document.getElementById('env-stmt-balance').innerText = e.balance.toLocaleString() + ' ج.م';
-            let txs = db.envelopeTransactions.filter(t => t.envelopeId === envelopeId).slice().sort((a,b) => new Date(a.date||0) - new Date(b.date||0));
-            let runningBal = 0;
-            let html = txs.map(t => {
+            if(!keepFilter) { document.getElementById('env-stmt-from').value = ''; document.getElementById('env-stmt-to').value = ''; }
+            document.getElementById('env-stmt-quick').innerHTML = quickRangeButtonsHtml('setEnvStmtQuickRange');
+            renderEnvelopeStatementList();
+            openModal('envelopeStatementModal');
+        }
+        function renderEnvelopeStatementList() {
+            let envelopeId = document.getElementById('env-stmt-id').value;
+            let e = db.envelopes.find(x => x.id === envelopeId); if(!e) return;
+            let from = document.getElementById('env-stmt-from').value;
+            let to = document.getElementById('env-stmt-to').value;
+            let all = db.envelopeTransactions.filter(t => t.envelopeId === envelopeId).slice().sort((a,b) => new Date(a.date||0) - new Date(b.date||0));
+            // الرصيد الجاري بيتحسب على كل الحركات، وبنعرض بس اللي جوه الفترة عشان الرقم يفضل صح
+            let runningBal = 0; let rows = []; let periodIn = 0; let periodOut = 0;
+            all.forEach(t => {
                 runningBal += (t.type === 'in' ? t.amount : -t.amount);
+                if(!inDateRange(t.date, from, to)) return;
+                if(t.type === 'in') periodIn += t.amount; else periodOut += t.amount;
+                rows.push({ t, bal: runningBal });
+            });
+            let statEl = document.getElementById('env-stmt-period-stats');
+            if(statEl) {
+                statEl.classList.toggle('hidden', !(from || to));
+                statEl.innerHTML = `في الفترة دي: <span class="text-emerald-600 font-black">+${periodIn.toLocaleString()}</span> تخصيص • <span class="text-rose-600 font-black">-${periodOut.toLocaleString()}</span> صرف • الصافي <span class="font-black">${(periodIn-periodOut).toLocaleString()}</span> ج.م`;
+            }
+            let html = rows.map(({ t, bal }) => {
                 let isIn = t.type === 'in';
+                let linked = (t.links && t.links.length) ? `<span class="text-[9px] font-black text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-md">مرتبطة بحركة فعلية</span>` : '';
                 return `<div class="flex items-center justify-between py-3 px-3 border-b border-slate-50 last:border-0" style="border-right:4px solid ${isIn?'#10b981':'#f43f5e'};">
-                    <div><p class="text-sm font-bold text-slate-700">${t.note || (isIn ? 'تخصيص' : 'صرف')}</p><p class="text-[11px] text-slate-400 font-bold mt-0.5">${t.date}</p></div>
-                    <div class="text-left flex-shrink-0"><p class="font-black text-sm ${isIn?'text-emerald-600':'text-rose-600'}">${isIn?'+':'-'}${t.amount.toLocaleString()}</p><p class="text-[10px] text-slate-400 font-bold">الرصيد: ${runningBal.toLocaleString()}</p></div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-slate-700 truncate">${t.note || (isIn ? 'تخصيص' : 'صرف')}</p>
+                        <p class="text-[11px] text-slate-400 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">${t.date} ${linked}</p>
+                    </div>
+                    <div class="text-left flex-shrink-0 flex items-center gap-2">
+                        <div>
+                            <p class="font-black text-sm ${isIn?'text-emerald-600':'text-rose-600'}">${isIn?'+':'-'}${t.amount.toLocaleString()}</p>
+                            <p class="text-[10px] text-slate-400 font-bold">الرصيد: ${bal.toLocaleString()}</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button onclick="openEnvelopeTxEdit('${t.id}')" class="w-7 h-7 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                            <button onclick="deleteEnvelopeTx('${t.id}')" class="w-7 h-7 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center hover:bg-rose-100"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </div>
                 </div>`;
             }).join('');
-            document.getElementById('env-stmt-list').innerHTML = html || '<p class="text-xs text-slate-400 text-center py-8 font-bold">لسه مفيش حركات على الجيب ده.</p>';
-            openModal('envelopeStatementModal');
+            document.getElementById('env-stmt-list').innerHTML = html || `<p class="text-xs text-slate-400 text-center py-8 font-bold">${(from||to) ? 'مفيش حركات في الفترة دي.' : 'لسه مفيش حركات على الجيب ده.'}</p>`;
+        }
+        function setEnvPeriodQuickRange(kind) {
+            let r = quickRange(kind);
+            document.getElementById('env-period-from').value = r.from;
+            document.getElementById('env-period-to').value = r.to;
+            renderEnvelopes();
+        }
+        function setEnvStmtQuickRange(kind) {
+            let r = quickRange(kind);
+            document.getElementById('env-stmt-from').value = r.from;
+            document.getElementById('env-stmt-to').value = r.to;
+            renderEnvelopeStatementList();
+        }
+
+        // ---------- تعديل وحذف حركات الجيوب ----------
+        function openEnvelopeTxEdit(txId) {
+            let t = db.envelopeTransactions.find(x => x.id === txId); if(!t) return;
+            document.getElementById('etx-id').value = txId;
+            document.getElementById('etx-amount').value = t.amount;
+            document.getElementById('etx-date').value = t.date;
+            document.getElementById('etx-note').value = t.note || '';
+            document.getElementById('etx-type').value = t.type;
+            let linkNote = document.getElementById('etx-link-note');
+            let hasLinks = t.links && t.links.length > 0;
+            linkNote.classList.toggle('hidden', !hasLinks);
+            if(hasLinks) linkNote.innerText = 'الحركة دي مرتبطة بحركة فلوس حقيقية (سحب/صرف). أي تعديل في المبلغ أو التاريخ هيتطبق على الاتنين مع بعض.';
+            openModal('envelopeTxEditModal');
+        }
+        function saveEnvelopeTxEdit() {
+            let txId = document.getElementById('etx-id').value;
+            let t = db.envelopeTransactions.find(x => x.id === txId); if(!t) return;
+            let amount = parseFloat(document.getElementById('etx-amount').value);
+            let date = document.getElementById('etx-date').value;
+            let note = document.getElementById('etx-note').value;
+            let type = document.getElementById('etx-type').value;
+            if(!amount || amount <= 0 || !date) { Swal.fire('خطأ', 'أكمل المبلغ والتاريخ', 'error'); return; }
+            t.amount = amount; t.date = date; t.note = note; t.type = type;
+            // نظبط الحركات الحقيقية المرتبطة بنفس المبلغ والتاريخ
+            (t.links || []).forEach(ref => {
+                if(ref.kind === 'acc') { let rt = db.transactions.find(x => x.id === ref.txId); if(rt) { rt.amount = amount; rt.date = date; } }
+                else if(ref.kind === 'cash') { let rt = db.cashSafe.transactions.find(x => x.id === ref.txId); if(rt) { rt.amount = amount; rt.date = date; } }
+            });
+            recalcEnvelopeBalances(); recalculateAllAccountBalances(); recalcCashSafeBalances();
+            closeModal('envelopeTxEditModal'); saveApp();
+            renderEnvelopeStatementList();
+            let e = db.envelopes.find(x => x.id === t.envelopeId);
+            if(e) document.getElementById('env-stmt-balance').innerText = e.balance.toLocaleString() + ' ج.م';
+            if(currentTab === 'envelopes') renderEnvelopes();
+            Swal.fire('اتعدلت ✅', 'الحركة اتحدّثت' + ((t.links && t.links.length) ? ' مع الحركة الفعلية المرتبطة بيها.' : '.'), 'success');
+        }
+        function deleteEnvelopeTx(txId) {
+            let t = db.envelopeTransactions.find(x => x.id === txId); if(!t) return;
+            let hasLinks = t.links && t.links.length > 0;
+            let msg = hasLinks
+                ? 'الحركة دي مرتبطة بحركة فلوس حقيقية. هتتمسح هي والحركة الفعلية مع بعض، ورصيد البنك/الكاش هيرجع زي ما كان.'
+                : 'هتتمسح الحركة دي من الجيب ورصيد الجيب هيتظبط تلقائي.';
+            Swal.fire({ title: 'متأكد؟', html: msg, icon: 'warning', showCancelButton: true, confirmButtonText: 'امسح', cancelButtonText: 'رجوع', confirmButtonColor: '#e11d48' }).then(res => {
+                if(!res.isConfirmed) return;
+                (t.links || []).forEach(ref => removeMoneyTx(ref));
+                let envelopeId = t.envelopeId;
+                db.envelopeTransactions = db.envelopeTransactions.filter(x => x.id !== txId);
+                recalcEnvelopeBalances(); recalculateAllAccountBalances(); recalcCashSafeBalances(); saveApp();
+                renderEnvelopeStatementList();
+                let e = db.envelopes.find(x => x.id === envelopeId);
+                if(e) document.getElementById('env-stmt-balance').innerText = e.balance.toLocaleString() + ' ج.م';
+                if(currentTab === 'envelopes') renderEnvelopes();
+                Swal.fire('اتمسحت ✅', 'الحركة اتشالت' + (hasLinks ? ' مع الحركة الفعلية المرتبطة بيها.' : '.'), 'success');
+            });
         }
 
         function openAddGam3eyaModal(editId = null) {
@@ -3132,11 +3502,17 @@
             if (isOwner) cashToggle.classList.remove('hidden'); else cashToggle.classList.add('hidden');
             let includeVisa = isOwner && document.getElementById('include-visa-analysis').checked;
             let includeCash = isOwner && document.getElementById('include-cash-analysis').checked;
-            let txs = db.transactions.filter(t => t.personId === selectedPersonId && t.category && !t.isArchived); let totalIn = 0; let totalOut = 0; let breakdownOut = {};
+            let quickEl = document.getElementById('analysis-period-quick');
+            if(quickEl && !quickEl.innerHTML) quickEl.innerHTML = quickRangeButtonsHtml('setAnalysisQuickRange');
+            let aFrom = document.getElementById('analysis-from') ? document.getElementById('analysis-from').value : '';
+            let aTo = document.getElementById('analysis-to') ? document.getElementById('analysis-to').value : '';
+            let periodLabel = document.getElementById('analysis-period-label');
+            if(periodLabel) periodLabel.innerText = (aFrom || aTo) ? `${aFrom || 'البداية'} ← ${aTo || 'النهاية'}` : 'كل الفترات';
+            let txs = db.transactions.filter(t => t.personId === selectedPersonId && t.category && !t.isArchived && inDateRange(t.date, aFrom, aTo)); let totalIn = 0; let totalOut = 0; let breakdownOut = {};
             txs.forEach(t => { if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; } });
-            if(includeVisa) { let visaTxs = db.visa.transactions.filter(t => t.type === 'buy' && t.category && !t.isArchived); visaTxs.forEach(t => { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; }); }
+            if(includeVisa) { let visaTxs = db.visa.transactions.filter(t => t.type === 'buy' && t.category && !t.isArchived && inDateRange(t.date, aFrom, aTo)); visaTxs.forEach(t => { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; }); }
             // الكاش مش مربوط بشخص معيّن (زي الحسابات البنكية)، فهو دايماً فلوس المالك، فبيتضاف بس لما يكون المعروض هو تحليل المالك
-            if(includeCash) { db.cashSafe.transactions.forEach(t => { if(!t.category) return; if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; } }); }
+            if(includeCash) { db.cashSafe.transactions.forEach(t => { if(!t.category || !inDateRange(t.date, aFrom, aTo)) return; if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; } }); }
             document.getElementById('analysis-total-in').innerText = totalIn.toLocaleString(); document.getElementById('analysis-total-out').innerText = totalOut.toLocaleString();
             let breakdownArr = Object.keys(breakdownOut).map(k => ({ cat: k, val: breakdownOut[k] })).sort((a,b) => b.val - a.val); let ctx = document.getElementById('expenseChart');
             if (ctx) {
@@ -3147,6 +3523,156 @@
             let html = ''; breakdownArr.forEach((item, index) => { let percent = totalOut > 0 ? ((item.val / totalOut) * 100).toFixed(1) : 0; let cColor = colors[index % colors.length]; html += `<div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background-color: ${cColor}"></div><span class="text-sm font-bold text-slate-700">${item.cat}</span></div><span class="text-sm font-black text-slate-800">${item.val.toLocaleString()} <span class="text-xs text-slate-400 font-normal">ج</span></span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-full rounded-full" style="width: ${percent}%; background-color: ${cColor}"></div></div><p class="text-[10px] text-slate-400 font-bold mt-1 text-left">${percent}%</p></div>`; });
             document.getElementById('analysis-out-breakdown').innerHTML = html || '<p class="text-sm text-slate-400 font-bold text-center py-6">لا توجد داتا لعرضها.</p>';
             renderBudgets();
+        }
+
+        // ====== متابعة الدخل: القبضة راحت فين واتصرفت على إيه ======
+        function getOwnerIncomeEvents() {
+            let ownerId = db.persons[0].id;
+            let list = [];
+            db.transactions.forEach(t => {
+                if(t.isArchived || t.type !== 'in' || t.personId !== ownerId) return;
+                let acc = db.accounts.find(a => a.id === t.accountId);
+                list.push({ id: t.id, date: t.date, amount: t.amount, note: t.note || 'دخل', where: acc ? `${acc.icon} ${acc.name}` : 'حساب محذوف' });
+            });
+            db.cashSafe.transactions.forEach(t => {
+                if(t.type !== 'in') return;
+                let loc = db.cashSafe.locations.find(l => l.id === t.locationId);
+                list.push({ id: t.id, date: t.date, amount: t.amount, note: t.note || 'دخل كاش', where: loc ? `${loc.icon} ${loc.name}` : 'مكان محذوف' });
+            });
+            return list.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+        }
+        function setIncomePeriodFromEvent(dateStr) {
+            document.getElementById('inc-from').value = dateStr;
+            document.getElementById('inc-to').value = new Date().toISOString().slice(0,10);
+            renderIncomeTracker();
+        }
+        function setIncomeQuickRange(kind) {
+            let r = quickRange(kind);
+            document.getElementById('inc-from').value = r.from;
+            document.getElementById('inc-to').value = r.to;
+            renderIncomeTracker();
+        }
+        function renderIncomeTracker() {
+            let quickEl = document.getElementById('inc-period-quick');
+            if(quickEl && !quickEl.innerHTML) quickEl.innerHTML = quickRangeButtonsHtml('setIncomeQuickRange');
+            let fromEl = document.getElementById('inc-from'); let toEl = document.getElementById('inc-to');
+            if(!fromEl) return;
+            // أول مرة: نبدأ من آخر قبضة تلقائي
+            if(!fromEl.value && !toEl.value) {
+                let events = getOwnerIncomeEvents();
+                if(events.length) { fromEl.value = events[0].date; toEl.value = new Date().toISOString().slice(0,10); }
+            }
+            let from = fromEl.value; let to = toEl.value;
+            let ownerId = db.persons[0].id;
+
+            // قائمة القبضات
+            let events = getOwnerIncomeEvents();
+            document.getElementById('inc-income-list').innerHTML = events.length ? events.slice(0, 30).map(ev => {
+                let active = ev.date === from;
+                return `<button onclick="setIncomePeriodFromEvent('${ev.date}')" class="w-full text-right p-3 rounded-2xl border transition-all ${active ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-emerald-200'}">
+                    <div class="flex justify-between items-center gap-2">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-black text-slate-700 truncate">${ev.note}</p>
+                            <p class="text-[10px] font-bold text-slate-400 mt-0.5">${ev.date} • ${ev.where}</p>
+                        </div>
+                        <span class="text-sm font-black text-emerald-600 flex-shrink-0">+${ev.amount.toLocaleString()}</span>
+                    </div>
+                </button>`;
+            }).join('') : '<p class="text-xs text-slate-400 font-bold text-center py-6">لسه مفيش قبضات مسجّلة.</p>';
+
+            // إجماليات الفترة
+            let totalIn = 0, totalOut = 0; let breakdown = {}; let txRows = [];
+            db.transactions.forEach(t => {
+                if(t.isArchived || t.personId !== ownerId || t.isTransfer || !inDateRange(t.date, from, to)) return;
+                let acc = db.accounts.find(a => a.id === t.accountId);
+                if(t.type === 'in') { totalIn += t.amount; txRows.push({ date: t.date, amount: t.amount, type: 'in', note: t.note || 'دخل', src: acc ? acc.name : '-', cat: t.category || '' }); }
+                else {
+                    totalOut += t.amount;
+                    let cat = t.category || 'بدون تصنيف'; breakdown[cat] = (breakdown[cat] || 0) + t.amount;
+                    txRows.push({ date: t.date, amount: t.amount, type: 'out', note: t.note || 'صرف', src: acc ? acc.name : '-', cat });
+                }
+            });
+            db.cashSafe.transactions.forEach(t => {
+                if(t.isTransfer || !inDateRange(t.date, from, to)) return;
+                let loc = db.cashSafe.locations.find(l => l.id === t.locationId);
+                if(t.type === 'in') { totalIn += t.amount; txRows.push({ date: t.date, amount: t.amount, type: 'in', note: t.note || 'دخل كاش', src: loc ? loc.name : '-', cat: t.category || '' }); }
+                else {
+                    totalOut += t.amount;
+                    let cat = t.category || 'بدون تصنيف'; breakdown[cat] = (breakdown[cat] || 0) + t.amount;
+                    txRows.push({ date: t.date, amount: t.amount, type: 'out', note: t.note || 'صرف كاش', src: loc ? loc.name : '-', cat });
+                }
+            });
+            if(db.visa && db.visa.transactions) {
+                db.visa.transactions.forEach(t => {
+                    if(t.isArchived || t.type !== 'buy' || !inDateRange(t.date, from, to)) return;
+                    totalOut += t.amount;
+                    let cat = t.category || 'بدون تصنيف'; breakdown[cat] = (breakdown[cat] || 0) + t.amount;
+                    txRows.push({ date: t.date, amount: t.amount, type: 'out', note: t.desc || 'مشتريات فيزا', src: 'فيزا', cat });
+                });
+            }
+
+            let remaining = totalIn - totalOut;
+            document.getElementById('inc-total-in').innerText = totalIn.toLocaleString();
+            document.getElementById('inc-total-out').innerText = totalOut.toLocaleString();
+            document.getElementById('inc-remaining').innerHTML = `${remaining.toLocaleString()} <span class="text-lg text-slate-400 font-bold">ج.م</span>`;
+            let burn = totalIn > 0 ? Math.min(100, (totalOut / totalIn) * 100) : 0;
+            document.getElementById('inc-burn-bar').style.width = burn + '%';
+            document.getElementById('inc-burn-label').innerText = totalIn > 0 ? `${burn.toFixed(0)}% من الدخل` : 'مفيش دخل في الفترة';
+
+            // التوزيع على الجيوب في الفترة
+            let envIn = {}; let envOut = {};
+            db.envelopeTransactions.forEach(t => {
+                if(!inDateRange(t.date, from, to)) return;
+                if(t.type === 'in') envIn[t.envelopeId] = (envIn[t.envelopeId] || 0) + t.amount;
+                else envOut[t.envelopeId] = (envOut[t.envelopeId] || 0) + t.amount;
+            });
+            let envIds = [...new Set([...Object.keys(envIn), ...Object.keys(envOut)])];
+            document.getElementById('inc-envelope-split').innerHTML = envIds.length ? envIds.map(id => {
+                let e = db.envelopes.find(x => x.id === id);
+                let allocated = envIn[id] || 0; let spent = envOut[id] || 0;
+                let pct = allocated > 0 ? Math.min(100, (spent / allocated) * 100) : (spent > 0 ? 100 : 0);
+                let barColor = pct >= 100 ? '#e11d48' : (pct >= 80 ? '#f59e0b' : '#10b981');
+                return `<div onclick="${e ? `openEnvelopeStatement('${id}')` : ''}" class="${e?'cursor-pointer ':''}bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-black text-slate-700">${e ? e.icon + ' ' + e.name : '⚠️ جيب محذوف'}</span>
+                        <span class="text-[11px] font-black text-slate-600">اتخصص ${allocated.toLocaleString()} • اتصرف ${spent.toLocaleString()}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background:${barColor}"></div></div>
+                </div>`;
+            }).join('') : '<p class="text-xs text-slate-400 font-bold text-center py-5">مفيش تخصيصات للجيوب في الفترة دي.</p>';
+
+            // الصرف حسب التصنيف
+            let breakdownArr = Object.keys(breakdown).map(k => ({ cat: k, val: breakdown[k] })).sort((a,b) => b.val - a.val);
+            document.getElementById('inc-spend-breakdown').innerHTML = breakdownArr.length ? breakdownArr.map((item, i) => {
+                let percent = totalOut > 0 ? ((item.val / totalOut) * 100).toFixed(1) : 0;
+                let c = colors[i % colors.length];
+                return `<div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:${c}"></span>${item.cat}</span>
+                        <span class="text-xs font-black text-slate-800">${item.val.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">(${percent}%)</span></span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full" style="width:${percent}%;background:${c}"></div></div>
+                </div>`;
+            }).join('') : '<p class="text-xs text-slate-400 font-bold text-center py-5">مفيش مصاريف في الفترة دي.</p>';
+
+            // كل الحركات
+            txRows.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+            document.getElementById('inc-tx-count').innerText = txRows.length ? `${txRows.length} حركة` : '';
+            document.getElementById('inc-tx-list').innerHTML = txRows.length ? txRows.map(r => `
+                <div class="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-white" style="border-right:4px solid ${r.type==='in'?'#10b981':'#f43f5e'}">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold text-slate-700 truncate">${r.note}</p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-0.5">${r.date} • ${r.src}${r.cat ? ' • ' + r.cat : ''}</p>
+                    </div>
+                    <span class="text-sm font-black flex-shrink-0 ${r.type==='in'?'text-emerald-600':'text-rose-600'}">${r.type==='in'?'+':'-'}${r.amount.toLocaleString()}</span>
+                </div>`).join('') : '<p class="text-xs text-slate-400 font-bold text-center py-6">مفيش حركات في الفترة دي.</p>';
+        }
+
+        function setAnalysisQuickRange(kind) {
+            let r = quickRange(kind);
+            document.getElementById('analysis-from').value = r.from;
+            document.getElementById('analysis-to').value = r.to;
+            renderAnalysis();
         }
 
         // ====== الميزانية الشهرية ======
@@ -3244,7 +3770,7 @@
             document.getElementById('settings-cat-in-list').innerHTML = db.categories.in.map((c, i) => `<div class="flex justify-between items-center bg-white border border-slate-100 p-2.5 rounded-xl text-xs shadow-sm"><span class="text-slate-700 font-bold px-1">${c}</span> <button onclick="deleteCategory('in', ${i})" class="text-emerald-400 hover:text-emerald-600 bg-emerald-50 w-6 h-6 rounded-lg flex items-center justify-center transition-all"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
             let ahtml = ''; db.accounts.forEach(a => { let hasData = db.transactions.filter(t => t.accountId === a.id).length > 0 || a.balance !== 0; ahtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span class="text-sm font-extrabold text-slate-800 cursor-pointer" onclick="openAccountStatement('${a.id}')">${a.icon} ${a.name}</span><button onclick="deleteAccount('${a.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button></div>`; }); document.getElementById('settings-accounts-list').innerHTML = ahtml;
             let chtml = ''; db.cashSafe.locations.forEach(l => { let hasData = db.cashSafe.transactions.filter(t => t.locationId === l.id).length > 0 || l.balance !== 0; chtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span class="text-sm font-extrabold text-slate-800 cursor-pointer" onclick="openCashLocationStatement('${l.id}')">${l.icon} ${l.name}</span><button onclick="deleteCashLocation('${l.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button></div>`; }); document.getElementById('settings-cash-locations-list').innerHTML = chtml;
-            renderLockSettings(); renderAppVersion(); renderHomeBalanceSettings();
+            renderLockSettings(); renderAppVersion(); renderHomeBalanceSettings(); renderOrderSettings();
         }
 
         // ====== اختيار رصيد كارت "الملخص" في الرئيسية ======
@@ -3536,7 +4062,7 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '1.4.0';
+        const APP_VERSION = '2.0.0';
         const APP_BUILD = '2026-09-19';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
