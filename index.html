@@ -491,8 +491,10 @@
                 <div id="chart-container" class="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-6 h-72 relative hidden flex justify-center items-center">
                     <canvas id="expenseChart"></canvas>
                 </div>
-                <h3 class="font-extrabold text-slate-800 mb-3 text-lg">التفصيل حسب التصنيف</h3>
+                <h3 class="font-extrabold text-slate-800 mb-3 text-lg">المصروفات حسب التصنيف</h3>
                 <div id="analysis-out-breakdown" class="space-y-3"></div>
+                <h3 class="font-extrabold text-slate-800 mb-3 mt-6 text-lg">الإيداعات حسب التصنيف</h3>
+                <div id="analysis-in-breakdown" class="space-y-3"></div>
             </div>
 
             <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
@@ -1310,16 +1312,26 @@
             <p class="text-xs text-slate-400 font-bold mb-5" id="gpay-info"></p>
             <input type="hidden" id="gpay-gid">
             <div class="space-y-4">
-                <select id="gpay-source" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold"></select>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 mb-1 block">القسط ده هيتدفع منين؟</label>
+                    <select id="gpay-kind" onchange="toggleGpayKind()" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-3">
+                        <option value="acc">من حساب / كاش عادي</option>
+                        <option value="env">من جيب من جيوبي</option>
+                    </select>
+                    <div id="gpay-env-wrap" class="hidden mb-3">
+                        <label class="text-xs font-bold text-amber-600 mb-1 block">أنهي جيب؟</label>
+                        <select id="gpay-envelope" onchange="updateGpayEnvHint()" class="w-full p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800"></select>
+                        <p id="gpay-env-hint" class="text-[11px] font-bold text-amber-600 mt-1.5 px-1"></p>
+                    </div>
+                    <label class="text-xs font-bold text-rose-500 mb-1 block">الفلوس هتخرج فعلياً من فين؟</label>
+                    <select id="gpay-source" class="w-full p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-sm font-bold text-rose-800"></select>
+                    <p id="gpay-env-explain" class="hidden text-[11px] font-bold text-slate-400 mt-2 bg-slate-50 p-3 rounded-2xl leading-relaxed">الجيب مجرد تخصيص جوه حسابك، فالمبلغ هيخرج فعلياً من المكان اللي فوق ده، وفي نفس الوقت هيتخصم من رصيد الجيب.</p>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <input type="number" id="gpay-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
                     <input type="date" id="gpay-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
                 </div>
                 <input type="text" id="gpay-note" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" placeholder="ملاحظة (اختياري)">
-                <div>
-                    <label class="text-xs font-bold text-amber-600 mb-1 block">هتدفعها من جيب معين؟ (اختياري)</label>
-                    <select id="gpay-envelope" class="w-full p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800"></select>
-                </div>
                 <button onclick="saveGam3eyaPayment()" class="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 hover:brightness-125 text-white py-4 rounded-2xl font-black transition-all mt-2">تسجيل الدفع</button>
             </div>
         </div>
@@ -2620,8 +2632,18 @@
         }
 
         // ---------- تعديل وحذف حركات الجيوب ----------
+        // حركات الجيب اللي جاية من قسط جمعية بتتدار من صفحة الجمعيات، عشان السجلين مايختلفوش
+        function findGam3eyaForEnvelopeTx(envTxId) {
+            for(let g of db.gam3ya.list) {
+                let p = (g.payments || []).find(x => x.envelopeTxId === envTxId);
+                if(p) return { g, p };
+            }
+            return null;
+        }
         function openEnvelopeTxEdit(txId) {
             let t = db.envelopeTransactions.find(x => x.id === txId); if(!t) return;
+            let linkedG = findGam3eyaForEnvelopeTx(txId);
+            if(linkedG) { Swal.fire('الحركة دي بتاعة جمعية', `دي قسط في جمعية "<b>${linkedG.g.name}</b>". عدّلها أو امسحها من صفحة الجمعيات عشان السجلين يفضلوا متطابقين.`, 'info'); return; }
             document.getElementById('etx-id').value = txId;
             document.getElementById('etx-amount').value = t.amount;
             document.getElementById('etx-date').value = t.date;
@@ -2657,6 +2679,8 @@
         }
         function deleteEnvelopeTx(txId) {
             let t = db.envelopeTransactions.find(x => x.id === txId); if(!t) return;
+            let linkedG = findGam3eyaForEnvelopeTx(txId);
+            if(linkedG) { Swal.fire('الحركة دي بتاعة جمعية', `دي قسط في جمعية "<b>${linkedG.g.name}</b>". امسحه من صفحة الجمعيات عشان الفلوس والأقساط يترجعوا صح.`, 'info'); return; }
             let hasLinks = t.links && t.links.length > 0;
             let msg = hasLinks
                 ? 'الحركة دي مرتبطة بحركة فلوس حقيقية. هتتمسح هي والحركة الفعلية مع بعض، ورصيد البنك/الكاش هيرجع زي ما كان.'
@@ -2787,10 +2811,36 @@
             document.getElementById('gpay-amount').value = g.monthlyAmount;
             document.getElementById('gpay-date').valueAsDate = new Date();
             document.getElementById('gpay-note').value = '';
-            document.getElementById('gpay-envelope').innerHTML = '<option value="">بدون (من الحساب بس)</option>' + db.envelopes.map(e => `<option value="${e.id}">${e.icon} ${e.name} (${e.balance.toLocaleString()} ج.م)</option>`).join('');
+            recalcEnvelopeBalances();
+            document.getElementById('gpay-envelope').innerHTML = db.envelopes.length
+                ? db.envelopes.map(e => `<option value="${e.id}">${e.icon} ${e.name} (${e.balance.toLocaleString()} ج.م)</option>`).join('')
+                : '<option value="">-- لسه مفيش جيوب --</option>';
+            // لو الجمعية اتدفعت قبل كده من جيب، بنفتكر نفس الاختيار
+            let lastPay = (g.payments || []).filter(p => p.envelopeId).pop();
+            document.getElementById('gpay-kind').value = (lastPay && db.envelopes.some(e => e.id === lastPay.envelopeId)) ? 'env' : 'acc';
+            if(lastPay && db.envelopes.some(e => e.id === lastPay.envelopeId)) document.getElementById('gpay-envelope').value = lastPay.envelopeId;
+            toggleGpayKind();
             document.getElementById('gpay-title').innerText = `دفع قسط: ${g.name}`;
             document.getElementById('gpay-info').innerText = `اتدفع لحد دلوقتي ${(g.payments||[]).length} من أصل ${g.months} قسط`;
             openModal('gam3eyaPayModal');
+        }
+        function toggleGpayKind() {
+            let isEnv = document.getElementById('gpay-kind').value === 'env';
+            document.getElementById('gpay-env-wrap').classList.toggle('hidden', !isEnv);
+            document.getElementById('gpay-env-explain').classList.toggle('hidden', !isEnv);
+            if(isEnv && db.envelopes.length === 0) {
+                Swal.fire('محتاج جيب الأول', 'ضيف جيب من صفحة الجيوب عشان تقدر تدفع منه.', 'info');
+                document.getElementById('gpay-kind').value = 'acc';
+                document.getElementById('gpay-env-wrap').classList.add('hidden');
+                document.getElementById('gpay-env-explain').classList.add('hidden');
+                return;
+            }
+            if(isEnv) updateGpayEnvHint();
+        }
+        function updateGpayEnvHint() {
+            let e = db.envelopes.find(x => x.id === document.getElementById('gpay-envelope').value);
+            let hint = document.getElementById('gpay-env-hint');
+            if(hint) hint.innerText = e ? `متاح في جيب "${e.name}": ${e.balance.toLocaleString()} ج.م` : '';
         }
         function saveGam3eyaPayment() {
             let id = document.getElementById('gpay-gid').value;
@@ -2799,17 +2849,23 @@
             let date = document.getElementById('gpay-date').value;
             let note = document.getElementById('gpay-note').value;
             let sourceVal = document.getElementById('gpay-source').value;
-            let envelopeId = document.getElementById('gpay-envelope').value;
+            let payFromEnvelope = document.getElementById('gpay-kind').value === 'env';
+            let envelopeId = payFromEnvelope ? document.getElementById('gpay-envelope').value : '';
             if(!amount || amount <= 0 || !date || !sourceVal) { Swal.fire('خطأ', 'أكمل بيانات القسط', 'error'); return; }
+            let env = envelopeId ? db.envelopes.find(x => x.id === envelopeId) : null;
+            if(payFromEnvelope && !env) { Swal.fire('خطأ', 'اختار الجيب اللي هتدفع منه', 'error'); return; }
+            if(env && amount > env.balance) { Swal.fire('الجيب مش كفاية', `في جيب "${env.name}" <b>${env.balance.toLocaleString()}</b> ج.م بس، والقسط <b>${amount.toLocaleString()}</b> ج.م.`, 'error'); return; }
             if(!g.payments) g.payments = [];
             let idx = g.payments.length + 1;
-            let finalNote = `جمعية "${g.name}" - قسط ${idx}/${g.months}${note ? ' - ' + note : ''}`;
+            let finalNote = `جمعية "${g.name}" - قسط ${idx}/${g.months}${env ? ` (من جيب ${env.name})` : ''}${note ? ' - ' + note : ''}`;
             let ref = applyMoneyOut(sourceVal, amount, date, finalNote);
             let [sType, sId] = sourceVal.split(':');
             let envelopeTxId = null;
-            if(envelopeId) envelopeTxId = applyEnvelopeOut(envelopeId, amount, date, finalNote);
+            // بنربط حركة الجيب بالحركة الحقيقية عشان التعديل/الحذف من كشف الجيب يفضل متسق
+            if(env) envelopeTxId = applyEnvelopeOut(envelopeId, amount, date, finalNote, [ref]);
             g.payments.push({ id: generateId(), date, amount, sourceType: sType, sourceId: sId, sourceKind: ref.kind, txId: ref.txId, envelopeId: envelopeId || null, envelopeTxId });
             closeModal('gam3eyaPayModal'); saveApp(); renderGam3eya();
+            if(env) Swal.fire('اتسجل ✅', `القسط اتدفع من <b>${getSourceLabel(sourceVal)}</b>، واتخصم من جيب <b>${env.name}</b> اللي بقى رصيده <b>${env.balance.toLocaleString()}</b> ج.م.`, 'success');
         }
         function deleteGam3eyaPayment(gid, payId) {
             let g = db.gam3ya.list.find(x => x.id === gid); if(!g) return;
@@ -3134,7 +3190,7 @@
                 let progress = g.months > 0 ? Math.min(100, Math.round(paidCount / g.months * 100)) : 0;
                 let statusBadge = g.status === 'received' ? `<span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex-shrink-0">تم القبض</span>` : `<span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-brand-50 text-brand-600 border border-brand-100 flex-shrink-0">نشطة</span>`;
                 let nextDueText = paidCount < g.months ? formatMonthKey(addMonthsToKey(g.startMonth, paidCount)) : 'مكتملة';
-                let paymentsHtml = (g.payments||[]).slice().reverse().map(p => `<div class="flex justify-between items-center py-2 border-t border-slate-50 text-xs"><span class="font-bold text-slate-600">${p.date} - ${getSourceLabel(p.sourceType+':'+p.sourceId)}</span><div class="flex items-center gap-2"><span class="font-black text-rose-500">${p.amount.toLocaleString()}</span><button onclick="deleteGam3eyaPayment('${g.id}','${p.id}')" class="text-rose-400 w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark text-[10px]"></i></button></div></div>`).join('');
+                let paymentsHtml = (g.payments||[]).slice().reverse().map(p => { let pe = p.envelopeId ? db.envelopes.find(e => e.id === p.envelopeId) : null; return `<div class="flex justify-between items-center py-2 border-t border-slate-50 text-xs"><span class="font-bold text-slate-600">${p.date} - ${getSourceLabel(p.sourceType+':'+p.sourceId)}${pe ? ` <span class="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">${pe.icon} ${pe.name}</span>` : ''}</span><div class="flex items-center gap-2"><span class="font-black text-rose-500">${p.amount.toLocaleString()}</span><button onclick="deleteGam3eyaPayment('${g.id}','${p.id}')" class="text-rose-400 w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark text-[10px]"></i></button></div></div>`; }).join('');
                 let receivedHtml = '';
                 if(g.receivedInfo) {
                     let splitsHtml = g.receivedInfo.splits.map(s => `<div class="flex justify-between items-center py-1.5 text-xs"><span class="font-bold text-slate-600">${s.label||'-'} • ${getSourceLabel(s.destType+':'+s.destId)}</span><span class="font-black text-emerald-600">+${s.amount.toLocaleString()}</span></div>`).join('');
@@ -3553,11 +3609,18 @@
             let aTo = document.getElementById('analysis-to') ? document.getElementById('analysis-to').value : '';
             let periodLabel = document.getElementById('analysis-period-label');
             if(periodLabel) periodLabel.innerText = (aFrom || aTo) ? `${aFrom || 'البداية'} ← ${aTo || 'النهاية'}` : 'كل الفترات';
-            let txs = db.transactions.filter(t => t.personId === selectedPersonId && t.category && !t.isArchived && inDateRange(t.date, aFrom, aTo)); let totalIn = 0; let totalOut = 0; let breakdownOut = {};
-            txs.forEach(t => { if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; } });
-            if(includeVisa) { let visaTxs = db.visa.transactions.filter(t => t.type === 'buy' && t.category && !t.isArchived && inDateRange(t.date, aFrom, aTo)); visaTxs.forEach(t => { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; }); }
+            // مهم: بنحسب كل الحركات حتى اللي من غير تصنيف (زي الإيداعات اللي جاية من توزيع الراتب)،
+            // واللي من غير تصنيف بيتجمّع تحت "بدون تصنيف" بدل ما يختفي خالص من التحليل.
+            // التحويلات الداخلية بين أماكنك بس هي اللي بتتستثنى لأنها مش دخل ولا صرف حقيقي.
+            let UNCAT = 'بدون تصنيف';
+            let txs = db.transactions.filter(t => t.personId === selectedPersonId && !t.isArchived && !t.isTransfer && inDateRange(t.date, aFrom, aTo));
+            let totalIn = 0; let totalOut = 0; let breakdownOut = {}; let breakdownIn = {};
+            let addOut = (cat, amt) => { breakdownOut[cat || UNCAT] = (breakdownOut[cat || UNCAT] || 0) + amt; };
+            let addIn = (cat, amt) => { breakdownIn[cat || UNCAT] = (breakdownIn[cat || UNCAT] || 0) + amt; };
+            txs.forEach(t => { if(t.type === 'in') { totalIn += t.amount; addIn(t.category, t.amount); } else { totalOut += t.amount; addOut(t.category, t.amount); } });
+            if(includeVisa) { let visaTxs = db.visa.transactions.filter(t => t.type === 'buy' && !t.isArchived && inDateRange(t.date, aFrom, aTo)); visaTxs.forEach(t => { totalOut += t.amount; addOut(t.category, t.amount); }); }
             // الكاش مش مربوط بشخص معيّن (زي الحسابات البنكية)، فهو دايماً فلوس المالك، فبيتضاف بس لما يكون المعروض هو تحليل المالك
-            if(includeCash) { db.cashSafe.transactions.forEach(t => { if(!t.category || !inDateRange(t.date, aFrom, aTo)) return; if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdownOut[t.category] = (breakdownOut[t.category] || 0) + t.amount; } }); }
+            if(includeCash) { db.cashSafe.transactions.forEach(t => { if(t.isTransfer || !inDateRange(t.date, aFrom, aTo)) return; if(t.type === 'in') { totalIn += t.amount; addIn(t.category, t.amount); } else { totalOut += t.amount; addOut(t.category, t.amount); } }); }
             document.getElementById('analysis-total-in').innerText = totalIn.toLocaleString(); document.getElementById('analysis-total-out').innerText = totalOut.toLocaleString();
             let breakdownArr = Object.keys(breakdownOut).map(k => ({ cat: k, val: breakdownOut[k] })).sort((a,b) => b.val - a.val); let ctx = document.getElementById('expenseChart');
             if (ctx) {
@@ -3567,6 +3630,14 @@
             }
             let html = ''; breakdownArr.forEach((item, index) => { let percent = totalOut > 0 ? ((item.val / totalOut) * 100).toFixed(1) : 0; let cColor = colors[index % colors.length]; html += `<div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background-color: ${cColor}"></div><span class="text-sm font-bold text-slate-700">${item.cat}</span></div><span class="text-sm font-black text-slate-800">${item.val.toLocaleString()} <span class="text-xs text-slate-400 font-normal">ج</span></span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-full rounded-full" style="width: ${percent}%; background-color: ${cColor}"></div></div><p class="text-[10px] text-slate-400 font-bold mt-1 text-left">${percent}%</p></div>`; });
             document.getElementById('analysis-out-breakdown').innerHTML = html || '<p class="text-sm text-slate-400 font-bold text-center py-6">لا توجد داتا لعرضها.</p>';
+            let inArr = Object.keys(breakdownIn).map(k => ({ cat: k, val: breakdownIn[k] })).sort((a,b) => b.val - a.val);
+            let inHtml = ''; inArr.forEach((item, index) => {
+                let percent = totalIn > 0 ? ((item.val / totalIn) * 100).toFixed(1) : 0;
+                let cColor = ['#10b981','#059669','#34d399','#14b8a6','#06b6d4','#0ea5e9'][index % 6];
+                inHtml += `<div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background-color: ${cColor}"></div><span class="text-sm font-bold text-slate-700">${item.cat}</span></div><span class="text-sm font-black text-slate-800">${item.val.toLocaleString()} <span class="text-xs text-slate-400 font-normal">ج</span></span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-full rounded-full" style="width: ${percent}%; background-color: ${cColor}"></div></div><p class="text-[10px] text-slate-400 font-bold mt-1 text-left">${percent}%</p></div>`;
+            });
+            let inEl = document.getElementById('analysis-in-breakdown');
+            if(inEl) inEl.innerHTML = inHtml || '<p class="text-sm text-slate-400 font-bold text-center py-6">مفيش إيداعات في الفترة دي.</p>';
             renderBudgets();
         }
 
@@ -4157,7 +4228,7 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.1.0';
+        const APP_VERSION = '2.2.0';
         const APP_BUILD = '2026-09-19';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
