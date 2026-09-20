@@ -1497,6 +1497,15 @@
         if(!Array.isArray(db.homeCardOrder)) db.homeCardOrder = [];
         if(!Array.isArray(db.tabOrder)) db.tabOrder = [];
         db.envelopeTransactions.forEach(t => { if(!Array.isArray(t.links)) t.links = []; });
+        // ترحيل: تخصيصات الجيوب القديمة مكانش فيها ربط بالإيداع اللي جات منه، فبنستنتجه من التاريخ والمبلغ
+        (function linkLegacyEnvelopeAllocations() {
+            let ownerId = db.persons[0] && db.persons[0].id; if(!ownerId) return;
+            db.envelopeTransactions.forEach(t => {
+                if(t.type !== 'in' || t.sourceTxId) return;
+                let matches = db.transactions.filter(x => x.type === 'in' && x.personId === ownerId && !x.isArchived && x.date === t.date && Math.abs(x.amount - t.amount) < 0.005);
+                if(matches.length === 1) { t.sourceTxId = matches[0].id; if(matches[0].batchId) t.batchId = matches[0].batchId; }
+            });
+        })();
         let currentCashTxType = 'out';
         
         let currentTab = 'home'; let currentPersonId = null; let currentTxType = 'out'; let expenseChartInstance = null; 
@@ -3674,7 +3683,7 @@
             let iHtml = ''; db.visa.installments.slice().reverse().forEach(inst => { let schedulesHtml = inst.schedules.map((sch, index) => `<div class="flex justify-between items-center py-3 border-t border-slate-50 ${sch.isPaid ? 'opacity-40 grayscale' : ''} transition-all"><div class="text-xs font-bold text-slate-700">قسط ${index + 1}: ${arabicMonths[sch.month - 1]} ${sch.year}</div><div class="flex items-center gap-4"><span class="text-sm font-black text-orange-500">${sch.amount.toLocaleString()}</span><label class="cursor-pointer relative"><input type="checkbox" class="sr-only checkbox-custom" ${sch.isPaid ? 'checked' : ''} onchange="toggleVisaInstMonth('${inst.id}', '${sch.id}')"><div class="w-6 h-6 border-2 border-slate-300 rounded-lg flex items-center justify-center bg-white"><svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div></label></div></div>`).join(''); iHtml += `<div class="bg-white rounded-3xl border border-slate-100 shadow-soft overflow-hidden mb-5"><div class="p-5 bg-slate-50/50 flex justify-between items-start"><div><h4 class="font-black text-slate-800">${inst.desc}</h4><p class="text-xs font-bold text-slate-400 mt-1.5">الإجمالي: ${inst.total.toLocaleString()} | ${inst.months} شهور</p></div><button onclick="deleteVisaInst('${inst.id}')" class="text-rose-400 hover:text-rose-600 bg-rose-50 w-10 h-10 rounded-2xl flex items-center justify-center transition-all"><i class="fa-solid fa-trash-can"></i></button></div><div class="px-5 py-2">${schedulesHtml}</div></div>`; });
             document.getElementById('v-installmentsList').innerHTML = iHtml || '<p class="text-center text-slate-400 font-bold text-sm py-6">لا توجد أقساط</p>';
             let sRows = ''; let aRows = ''; db.visa.transactions.slice().reverse().forEach(t => { let isBuy = t.type === 'buy'; let typeColor = isBuy ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'; let catBadge = (isBuy && t.category) ? `<span class="text-[9px] bg-brand-50 text-brand-600 border px-2 py-1 rounded-lg ml-2">${t.category}</span> ` : '';
-                if (!t.isArchived) { sRows += `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs font-bold text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 font-bold text-slate-700 td-content">${catBadge}${t.desc} <br><span class="text-[10px] ${typeColor} border px-2 py-0.5 rounded-lg font-black mt-1 inline-block">${isBuy?'سحب':'سداد'}</span></td><td data-label="المبلغ" class="p-4 text-sm font-black ${isBuy ? 'text-rose-500' : 'text-emerald-500'} sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><div class="flex justify-center gap-2"><button onclick="archiveVisaTx('${t.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">أرشفة</button><button onclick="deleteVisaTx('${t.id}')" class="text-rose-400 bg-rose-50 px-2.5 rounded-xl"><i class="fa-solid fa-trash text-xs"></i></button></div></td></tr>`; } 
+                if (!t.isArchived) { sRows += `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs font-bold text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 font-bold text-slate-700 td-content">${catBadge}${t.desc} <br><span class="text-[10px] ${typeColor} border px-2 py-0.5 rounded-lg font-black mt-1 inline-block">${isBuy?'سحب':'سداد'}</span>${isBuy && t.isAdvance ? '<span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg font-black mt-1 mr-1 inline-block">سحب كاش (مش مصروف)</span>' : ''}</td><td data-label="المبلغ" class="p-4 text-sm font-black ${isBuy ? 'text-rose-500' : 'text-emerald-500'} sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><div class="flex justify-center gap-2">${isBuy ? `<button onclick="toggleVisaTxAdvance('${t.id}')" class="${t.isAdvance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} px-3 py-1.5 rounded-xl text-xs font-bold transition-all" title="سحب كاش يعني دين مش مصروف">${t.isAdvance ? 'رجّعها مشتريات' : 'دي سحب كاش'}</button>` : ''}<button onclick="archiveVisaTx('${t.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">أرشفة</button><button onclick="deleteVisaTx('${t.id}')" class="text-rose-400 bg-rose-50 px-2.5 rounded-xl"><i class="fa-solid fa-trash text-xs"></i></button></div></td></tr>`; } 
                 else { aRows += `<tr class="border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 text-sm text-slate-400 font-bold line-through td-content">${t.desc}</td><td data-label="المبلغ" class="p-4 text-sm font-black text-slate-400 sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><button onclick="unarchiveVisaTx('${t.id}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-4 py-1.5 rounded-xl transition-all">استرجاع</button></td></tr>`; }
             });
             document.getElementById('v-statementTableBody').innerHTML = sRows || `<tr><td colspan="4" class="text-center p-10 font-bold text-sm text-slate-400">البيان فارغ</td></tr>`; document.getElementById('v-archiveTableBody').innerHTML = aRows || `<tr><td colspan="4" class="text-center p-10 font-bold text-sm text-slate-400">الأرشيف فارغ</td></tr>`;
@@ -3702,6 +3711,15 @@
             saveApp();
             if(isAdvance) Swal.fire('اتسجل ✅', `<b>${amount.toLocaleString()}</b> ج.م اتسحبوا من الفيزا ونزلوا في <b>${getSourceLabel(advDest)}</b>. المبلغ ده دين على الفيزا، ومش محسوب دخل — المصروف هيتسجل لما تصرفه.`, 'success');
             switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+        }
+        // تعليم حركة فيزا قديمة إنها سحب كاش (دين) مش مشتريات، عشان متتحسبش مصروف في التحليل
+        function toggleVisaTxAdvance(id) {
+            let t = db.visa.transactions.find(x => x.id === id); if(!t || t.type !== 'buy') return;
+            t.isAdvance = !t.isAdvance;
+            saveApp();
+            switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+            Swal.fire(t.isAdvance ? 'اتعلّمت كسحب كاش ✅' : 'رجعت مشتريات ✅',
+                t.isAdvance ? 'المبلغ ده بقى محسوب دين على الفيزا مش مصروف، والمصروف هيتسجل لما تصرف الكاش نفسه.' : 'المبلغ ده رجع يتحسب مصروف عادي في التحليل.', 'success');
         }
         function archiveVisaTx(id) { Swal.fire({title: 'أرشفة؟', icon: 'question', showCancelButton: true, confirmButtonText: 'نعم' }).then((r) => { if (r.isConfirmed) { let t = db.visa.transactions.find(x => x.id === id); if (t) { t.isArchived = true; saveApp(); } } }); }
         function unarchiveVisaTx(id) { let t = db.visa.transactions.find(x => x.id === id); if (t) { t.isArchived = false; saveApp(); } }
@@ -3870,12 +3888,39 @@
             let selBatches = [...new Set(selEvents.map(e => e.batchId).filter(Boolean))];
             let selTxIds = selEvents.map(e => e.txId);
             let includeVisaInc = document.getElementById('inc-include-visa') ? document.getElementById('inc-include-visa').checked : true;
+            let inScope = locKey => !hasSelection || selLocs.includes(locKey);
+
+            // ==== إزاي بننسب الصرف للإيداع المختار ====
+            // الفلوس اللي اتخصصت لجيب متتصرفش غير لما تصرف من الجيب نفسه،
+            // والفلوس الحرة (اللي متخصصتش) هي اللي بيتخصم منها الصرف العادي من نفس المكان.
+            let linkedAlloc = db.envelopeTransactions.filter(t => {
+                if(t.type !== 'in') return false;
+                if(t.sourceTxId) return selTxIds.includes(t.sourceTxId);
+                return t.batchId && selBatches.includes(t.batchId);
+            });
+            let scopeEnvelopeIds = [...new Set(linkedAlloc.map(t => t.envelopeId))];
+            let allocByTx = {};
+            linkedAlloc.forEach(t => { if(t.sourceTxId) allocByTx[t.sourceTxId] = (allocByTx[t.sourceTxId] || 0) + t.amount; });
+            let allocNoTx = linkedAlloc.filter(t => !t.sourceTxId).reduce((s,t) => s + t.amount, 0);
+            let selTotal = selEvents.reduce((s,e) => s + e.amount, 0);
+            let allocTotal = Object.values(allocByTx).reduce((s,v) => s + v, 0) + allocNoTx;
+            let freeRemainder = Math.max(0, selTotal - allocTotal);
+            let includeFreeSpending = !hasSelection || freeRemainder > 0.005;
+            // الحركات الحقيقية المرتبطة بحركات جيوب: بتتحسب من ناحية الجيب عشان متتعدش مرتين
+            let envLinkedTxIds = new Set();
+            db.envelopeTransactions.forEach(t => (t.links || []).forEach(r => { if(r && r.txId) envLinkedTxIds.add(r.txId); }));
+
             let scopeNote = document.getElementById('inc-scope-note');
             if(scopeNote) {
                 scopeNote.classList.toggle('hidden', !hasSelection);
-                if(hasSelection) scopeNote.innerHTML = `بنحسب الصرف اللي خرج من: <b>${selLocs.map(l => getSourceLabel(l)).join(' • ')}</b> في الفترة دي.`;
+                if(hasSelection) {
+                    let parts = [];
+                    if(scopeEnvelopeIds.length) parts.push(`الصرف من الجيوب اللي الإيداع اتخصص فيها: <b>${scopeEnvelopeIds.map(id => { let e = db.envelopes.find(x=>x.id===id); return e ? e.name : 'جيب محذوف'; }).join(' • ')}</b>`);
+                    if(includeFreeSpending) parts.push(`والصرف العادي من: <b>${selLocs.map(l => getSourceLabel(l)).join(' • ')}</b>`);
+                    if(!parts.length) parts.push('الإيداع ده كله متخصص في جيوب، فمش هيتحسب عليه صرف غير لما تصرف من الجيوب دي.');
+                    scopeNote.innerHTML = parts.join('، ') + '.';
+                }
             }
-            let inScope = locKey => !hasSelection || selLocs.includes(locKey);
 
             // إجماليات الفترة
             let totalIn = 0, totalOut = 0; let breakdown = {}; let txRows = [];
@@ -3888,7 +3933,7 @@
                     totalIn += t.amount; txRows.push({ date: t.date, amount: t.amount, type: 'in', note: t.note || 'دخل', src: acc ? acc.name : '-', cat: t.category || '' });
                 }
                 else {
-                    if(!inScope('acc:' + t.accountId)) return;
+                    if(hasSelection && (!inScope('acc:' + t.accountId) || !includeFreeSpending || envLinkedTxIds.has(t.id))) return;
                     totalOut += t.amount;
                     let cat = t.category || 'بدون تصنيف'; breakdown[cat] = (breakdown[cat] || 0) + t.amount;
                     txRows.push({ date: t.date, amount: t.amount, type: 'out', note: t.note || 'صرف', src: acc ? acc.name : '-', cat });
@@ -3902,12 +3947,32 @@
                     totalIn += t.amount; txRows.push({ date: t.date, amount: t.amount, type: 'in', note: t.note || 'دخل كاش', src: loc ? loc.name : '-', cat: t.category || '' });
                 }
                 else {
-                    if(!inScope('cash:' + t.locationId)) return;
+                    if(hasSelection && (!inScope('cash:' + t.locationId) || !includeFreeSpending || envLinkedTxIds.has(t.id))) return;
                     totalOut += t.amount;
                     let cat = t.category || 'بدون تصنيف'; breakdown[cat] = (breakdown[cat] || 0) + t.amount;
                     txRows.push({ date: t.date, amount: t.amount, type: 'out', note: t.note || 'صرف كاش', src: loc ? loc.name : '-', cat });
                 }
             });
+            // الصرف من الجيوب اللي الإيداع المختار اتخصص فيها: ده الصرف الحقيقي للفلوس المحجوزة
+            if(hasSelection && scopeEnvelopeIds.length) {
+                db.envelopeTransactions.forEach(t => {
+                    if(t.type !== 'out' || !scopeEnvelopeIds.includes(t.envelopeId) || !inDateRange(t.date, from, to)) return;
+                    let note = t.note || '';
+                    // التحويل بين الجيوب وتصحيح التخصيص مش صرف حقيقي
+                    if(note.includes('تحويل إلى جيب') || note.includes('تصحيح')) return;
+                    let e = db.envelopes.find(x => x.id === t.envelopeId);
+                    let cat = '';
+                    (t.links || []).forEach(r => {
+                        if(cat || !r || !r.txId) return;
+                        let rt = r.kind === 'acc' ? db.transactions.find(x => x.id === r.txId) : db.cashSafe.transactions.find(x => x.id === r.txId);
+                        if(rt && rt.category) cat = rt.category;
+                    });
+                    cat = cat || 'بدون تصنيف';
+                    totalOut += t.amount;
+                    breakdown[cat] = (breakdown[cat] || 0) + t.amount;
+                    txRows.push({ date: t.date, amount: t.amount, type: 'out', note: note || 'صرف من الجيب', src: e ? `جيب ${e.name}` : 'جيب محذوف', cat, tag: 'env' });
+                });
+            }
             if(db.visa && db.visa.transactions && includeVisaInc) {
                 db.visa.transactions.forEach(t => {
                     if(t.isArchived || t.type !== 'buy' || t.isAdvance || !inDateRange(t.date, from, to)) return;
@@ -3931,13 +3996,12 @@
             let envIn = {}; let envOut = {};
             // مع اختيار إيداعات: التخصيصات بتتفلتر على نفس القبضة، والصرف من الجيوب اللي اتخصصت منها
             // مع اختيار إيداعات: بنعرض بس التخصيصات المربوطة فعلاً بالإيداعات دي (بالدفعة أو بالحركة نفسها)
+            let linkedAllocIds = new Set(linkedAlloc.map(t => t.id));
             db.envelopeTransactions.forEach(t => {
                 if(!inDateRange(t.date, from, to)) return;
                 if(t.type === 'in') {
-                    if(hasSelection) {
-                        let linked = (t.batchId && selBatches.includes(t.batchId)) || (t.sourceTxId && selTxIds.includes(t.sourceTxId));
-                        if(!linked) return;
-                    }
+                    // مع الاختيار: بس التخصيصات المربوطة بالإيداعات دي بالظبط
+                    if(hasSelection && !linkedAllocIds.has(t.id)) return;
                     envIn[t.envelopeId] = (envIn[t.envelopeId] || 0) + t.amount;
                 }
                 else envOut[t.envelopeId] = (envOut[t.envelopeId] || 0) + t.amount;
@@ -3977,7 +4041,8 @@
             txRows.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
             document.getElementById('inc-tx-count').innerText = txRows.length ? `${txRows.length} حركة` : '';
             document.getElementById('inc-tx-list').innerHTML = txRows.length ? txRows.map(r => {
-                let visaBadge = r.tag === 'visa' ? `<span class="text-[9px] font-black text-white bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-1.5 py-0.5 rounded-md flex-shrink-0"><i class="fa-brands fa-cc-visa"></i> فيزا مشتريات</span>` : '';
+                let visaBadge = r.tag === 'visa' ? `<span class="text-[9px] font-black text-white bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-1.5 py-0.5 rounded-md flex-shrink-0"><i class="fa-brands fa-cc-visa"></i> فيزا مشتريات</span>`
+                    : (r.tag === 'env' ? `<span class="text-[9px] font-black text-cyan-700 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded-md flex-shrink-0">من الجيب</span>` : '');
                 return `
                 <div class="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-white" style="border-right:4px solid ${r.type==='in'?'#10b981':'#f43f5e'}">
                     <div class="min-w-0 flex-1">
@@ -4407,7 +4472,7 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.3.0';
+        const APP_VERSION = '2.4.0';
         const APP_BUILD = '2026-09-20';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
