@@ -1,7 +1,7 @@
 /* Service Worker لتطبيق "حساباتي"
    الهدف: التطبيق يفتح ويشتغل من غير نت بعد أول فتحة، ويتحدّث لوحده لما ينزل إصدار جديد. */
 
-const VERSION = 'v9';
+const VERSION = 'v11';
 const SHELL_CACHE = `hesabaty-shell-${VERSION}`;
 const ASSETS_CACHE = `hesabaty-assets-${VERSION}`;
 

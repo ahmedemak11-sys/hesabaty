@@ -9,6 +9,11 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6d28d9">
     <meta name="description" content="إدارة فلوسك بالكامل: الحسابات والكاش، الجيوب، الجمعيات، الفيزا والأقساط، والميزانية الشهرية.">
+    <!-- تطبيق شخصي: بنمنع محركات البحث إنها تفهرسه عشان محدش يلاقيه بالصدفة من جوجل -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <meta name="googlebot" content="noindex, nofollow">
+    <!-- كل الحقوق محفوظة — أحمد. الكود ده مش مرخّص للنسخ أو إعادة النشر. -->
+    <meta name="author" content="Ahmed">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1051,6 +1056,11 @@
                     <input type="number" id="env-move-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
                     <input type="date" id="env-move-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
                 </div>
+                <div id="env-move-dep-wrap" class="hidden">
+                    <label class="text-xs font-bold text-emerald-600 mb-1 block">التخصيص ده من أنهي إيداع؟ (اختياري)</label>
+                    <select id="env-move-dep" class="w-full p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-sm font-bold text-emerald-800"></select>
+                    <p class="text-[11px] font-bold text-slate-400 mt-1.5 leading-relaxed">لما تربطه بإيداع، "متابعة الدخل" هتعرف إن القبضة دي اتوزعت فين بالظبط.</p>
+                </div>
                 <div id="env-move-kind-wrap" class="hidden">
                     <label class="text-xs font-bold text-slate-500 mb-1 block">الفلوس دي رايحة فين؟</label>
                     <select id="env-move-kind" onchange="toggleEnvMoveSpendFields()" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
@@ -1105,6 +1115,38 @@
                 <p id="env-stmt-period-stats" class="hidden text-[11px] font-bold text-slate-500 mt-2 pt-2 border-t border-slate-200"></p>
             </div>
             <div id="env-stmt-list" class="space-y-0 max-h-[48vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <div id="visaTxEditModal" class="modal no-print" onclick="if(event.target===this) closeModal('visaTxEditModal')">
+        <div class="modal-content">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5"></div>
+            <h3 class="font-black text-xl mb-1 text-slate-800">تعديل حركة فيزا</h3>
+            <p class="text-xs text-slate-400 font-bold mb-5">غيّر البيان أو المبلغ أو التاريخ أو التصنيف.</p>
+            <input type="hidden" id="vedit-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 mb-1 block">نوع الحركة</label>
+                    <select id="vedit-type" onchange="toggleVisaEditFields()" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
+                        <option value="buy">سحب / مشتريات (-)</option>
+                        <option value="pay">سداد (+)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="vedit-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
+                    <input type="date" id="vedit-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
+                </div>
+                <input type="text" id="vedit-desc" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" placeholder="البيان">
+                <div id="vedit-cat-wrap">
+                    <label class="text-xs font-bold text-brand-600 mb-1 block">التصنيف</label>
+                    <select id="vedit-category" class="w-full p-3.5 bg-brand-50 border border-brand-200 rounded-2xl text-sm font-bold text-brand-800"></select>
+                </div>
+                <label id="vedit-adv-wrap" class="flex items-start gap-2 text-[11px] font-bold text-slate-500 bg-amber-50 border border-amber-200 p-3 rounded-2xl cursor-pointer">
+                    <input type="checkbox" id="vedit-is-advance" class="mt-0.5 w-4 h-4 accent-amber-500 rounded">
+                    <span>دي سحب كاش من الفيزا (دين مش مصروف) — مش هتتحسب في تحليل مصاريفك.</span>
+                </label>
+                <button onclick="saveVisaTxEdit()" class="w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:brightness-110 text-white py-4 rounded-2xl font-black transition-all mt-2">حفظ التعديل</button>
+            </div>
         </div>
     </div>
 
@@ -1169,10 +1211,16 @@
                 </div>
                 <select id="cashtx-category" class="w-full p-3.5 bg-brand-50 border border-brand-200 rounded-2xl text-sm font-bold text-brand-800"></select>
                 <input type="text" id="cashtx-note" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" placeholder="البيان / الملاحظات">
-                <label id="cashtx-transfer-wrap" class="hidden items-start gap-2 text-[11px] font-bold text-slate-500 bg-amber-50 border border-amber-200 p-3 rounded-2xl cursor-pointer">
-                    <input type="checkbox" id="cashtx-is-transfer" class="mt-0.5 w-4 h-4 accent-amber-500 rounded">
-                    <span>دي مش فلوس جديدة — دي جاية من مكان تاني عندي (سحب من الفيزا، من البنك، من جيب...). علّمها عشان ما تتحسبش دخل جديد في التحليل ومتابعة الدخل.</span>
-                </label>
+                <div id="cashtx-transfer-wrap" class="hidden">
+                    <label class="text-xs font-bold text-amber-600 mb-1 block">الكاش ده جاي منين؟</label>
+                    <select id="cashtx-source-kind" onchange="updateCashSourceHint()" class="w-full p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800">
+                        <option value="new">💰 فلوس جديدة من بره (دخل حقيقي)</option>
+                        <option value="acc">🏦 مسحوبة من حساب/محفظة عندي</option>
+                        <option value="visa">💳 مسحوبة من الفيزا</option>
+                        <option value="env">🧧 من جيب من جيوبي</option>
+                    </select>
+                    <p id="cashtx-source-hint" class="text-[11px] font-bold text-slate-400 mt-1.5 leading-relaxed"></p>
+                </div>
                 <button onclick="saveCashTransaction()" class="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 hover:brightness-125 text-white py-4 rounded-2xl font-black transition-all mt-2">حفظ الحركة</button>
                 <button id="cashtx-distribute-btn" onclick="openDistributeIncomeFromCashModal()" class="hidden w-full mt-2 bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-700 py-3 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-xs"><i class="fa-solid fa-arrows-split-up-and-left"></i> وزّعها على أكتر من مكان بدل ما تحفظها هنا بس</button>
             </div>
@@ -1500,10 +1548,20 @@
         // ترحيل: تخصيصات الجيوب القديمة مكانش فيها ربط بالإيداع اللي جات منه، فبنستنتجه من التاريخ والمبلغ
         (function linkLegacyEnvelopeAllocations() {
             let ownerId = db.persons[0] && db.persons[0].id; if(!ownerId) return;
+            let depositsOn = date => db.transactions.filter(x => x.type === 'in' && x.personId === ownerId && !x.isArchived && !x.isTransfer && x.date === date);
+            let used = {}; // كام اتخصص من كل إيداع، عشان منربطش أكتر من قيمته
+            db.envelopeTransactions.forEach(t => { if(t.type === 'in' && t.sourceTxId) used[t.sourceTxId] = (used[t.sourceTxId] || 0) + t.amount; });
+            // 1) مطابقة بالمبلغ بالظبط
             db.envelopeTransactions.forEach(t => {
                 if(t.type !== 'in' || t.sourceTxId) return;
-                let matches = db.transactions.filter(x => x.type === 'in' && x.personId === ownerId && !x.isArchived && x.date === t.date && Math.abs(x.amount - t.amount) < 0.005);
-                if(matches.length === 1) { t.sourceTxId = matches[0].id; if(matches[0].batchId) t.batchId = matches[0].batchId; }
+                let exact = depositsOn(t.date).filter(x => Math.abs(x.amount - t.amount) < 0.005 && (used[x.id] || 0) < 0.005);
+                if(exact.length === 1) { t.sourceTxId = exact[0].id; if(exact[0].batchId) t.batchId = exact[0].batchId; used[exact[0].id] = (used[exact[0].id] || 0) + t.amount; }
+            });
+            // 2) تخصيصات متفرّقة من إيداع واحد في نفس اليوم (زي ما تقبض وتوزّع على كذا جيب يدوي)
+            db.envelopeTransactions.forEach(t => {
+                if(t.type !== 'in' || t.sourceTxId) return;
+                let cands = depositsOn(t.date).filter(x => x.amount + 0.005 >= (used[x.id] || 0) + t.amount);
+                if(cands.length === 1) { t.sourceTxId = cands[0].id; if(cands[0].batchId) t.batchId = cands[0].batchId; used[cands[0].id] = (used[cands[0].id] || 0) + t.amount; }
             });
         })();
         let currentCashTxType = 'out';
@@ -1697,10 +1755,10 @@
                 if(editId) {
                     title.innerText = "تعديل حركة كاش"; hiddenId.value = editId;
                     let t = db.cashSafe.transactions.find(x => x.id === editId);
-                    if(t) { setCashTxType(t.type); locSelect.value = t.locationId; document.getElementById('cashtx-amount').value = t.amount; document.getElementById('cashtx-date').value = t.date; document.getElementById('cashtx-note').value = t.note; if(t.category) document.getElementById('cashtx-category').value = t.category; document.getElementById('cashtx-is-transfer').checked = !!t.isTransfer; }
+                    if(t) { setCashTxType(t.type); locSelect.value = t.locationId; document.getElementById('cashtx-amount').value = t.amount; document.getElementById('cashtx-date').value = t.date; document.getElementById('cashtx-note').value = t.note; if(t.category) document.getElementById('cashtx-category').value = t.category; document.getElementById('cashtx-source-kind').value = t.cashSource || (t.isTransfer ? 'acc' : 'new'); updateCashSourceHint(); }
                 } else {
                     title.innerText = "حركة كاش"; hiddenId.value = ""; document.getElementById('cashtx-amount').value = ""; document.getElementById('cashtx-note').value = "";
-                    document.getElementById('cashtx-is-transfer').checked = false;
+                    document.getElementById('cashtx-source-kind').value = 'new';
                     setCashTxType('out');
                 }
             } else if (id === 'transferCashModal') {
@@ -2083,9 +2141,18 @@
             let catSelect = document.getElementById('cashtx-category');
             if(catSelect) { let options = type === 'in' ? db.categories.in : db.categories.out; catSelect.innerHTML = '<option value="">-- تصنيف (اختياري) --</option>' + options.map(c => `<option value="${c}">${c}</option>`).join(''); }
             let distBtn = document.getElementById('cashtx-distribute-btn'); if(distBtn) distBtn.classList.toggle('hidden', type !== 'in');
-            // خانة "مش دخل جديد" تخص الإيداعات بس
+            // مصدر الكاش يخص الإيداعات بس
             let trWrap = document.getElementById('cashtx-transfer-wrap');
-            if(trWrap) { trWrap.classList.toggle('hidden', type !== 'in'); trWrap.classList.toggle('flex', type === 'in'); }
+            if(trWrap) { trWrap.classList.toggle('hidden', type !== 'in'); if(type === 'in') updateCashSourceHint(); }
+        }
+        const CASH_SOURCE_LABELS = { new: 'دخل جديد', acc: 'من حساب', visa: 'من الفيزا', env: 'من جيب' };
+        function updateCashSourceHint() {
+            let kind = document.getElementById('cashtx-source-kind').value;
+            let hint = document.getElementById('cashtx-source-hint'); if(!hint) return;
+            hint.innerText = kind === 'new'
+                ? 'هيتحسب دخل جديد في التحليل ومتابعة الدخل.'
+                : 'مش هيتحسب دخل جديد — دي نفس فلوسك بس اتنقلت مكان. رصيد الكاش هيزيد عادي.';
+            hint.className = 'text-[11px] font-bold mt-1.5 leading-relaxed ' + (kind === 'new' ? 'text-emerald-600' : 'text-amber-600');
         }
         function openDistributeIncomeFromCashModal() {
             let amount = parseFloat(document.getElementById('cashtx-amount').value) || '';
@@ -2138,8 +2205,10 @@
             const editId = document.getElementById('cashtx-edit-id').value;
             if(!amt || amt <= 0) { Swal.fire('خطأ', 'برجاء إدخال مبلغ صحيح!', 'error'); return; }
             if(editId) { db.cashSafe.transactions = db.cashSafe.transactions.filter(x => x.id !== editId); }
-            let isTransferIn = currentCashTxType === 'in' && document.getElementById('cashtx-is-transfer').checked;
-            db.cashSafe.transactions.push({ id: editId || generateId(), locationId: locId, type: currentCashTxType, amount: amt, date: date, note: note, category: category || null, isTransfer: isTransferIn });
+            let srcKind = currentCashTxType === 'in' ? document.getElementById('cashtx-source-kind').value : '';
+            // أي كاش جاي من مكان تاني عندك مش دخل جديد — الدخل الحقيقي بس هو اللي جاي من بره
+            let isTransferIn = currentCashTxType === 'in' && srcKind !== 'new';
+            db.cashSafe.transactions.push({ id: editId || generateId(), locationId: locId, type: currentCashTxType, amount: amt, date: date, note: note, category: category || null, isTransfer: isTransferIn, cashSource: srcKind || undefined });
             recalcCashSafeBalances(); closeModal('addCashTxModal'); saveApp();
         }
 
@@ -2194,9 +2263,16 @@
                 let amountColor = t.type === 'in' ? 'text-emerald-600' : 'text-rose-600';
                 let sign = t.type === 'in' ? '+' : '-';
                 let catBadge = t.category ? `<span class="text-[9px] bg-brand-50 text-brand-600 border border-brand-100 px-2 py-0.5 rounded-lg mr-1">${t.category}</span>` : '';
+                // شارة مصدر الكاش: نعرف فوراً دي فلوس جديدة ولا متنقّلة من مكان تاني
+                let srcBadge = '';
+                if(t.type === 'in') {
+                    let k = t.cashSource || (t.isTransfer ? 'acc' : 'new');
+                    let isNew = k === 'new';
+                    srcBadge = `<span class="text-[9px] font-black px-2 py-0.5 rounded-lg mr-1 ${isNew ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">${CASH_SOURCE_LABELS[k] || 'من حساب'}</span>`;
+                }
                 html += `<div class="flex justify-between items-center bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
                     <div class="flex-1">
-                        <p class="text-xs font-bold text-slate-700">${catBadge}${t.note || '-'}</p>
+                        <p class="text-xs font-bold text-slate-700">${srcBadge}${catBadge}${t.note || '-'}</p>
                         <p class="text-[10px] font-bold mt-1 text-slate-400">${t.date || '-'}</p>
                     </div>
                     <span class="text-sm font-black ${amountColor} ml-2" dir="ltr">${sign}${t.amount.toLocaleString()}</span>
@@ -2463,6 +2539,14 @@
             document.getElementById('env-move-cash-from').innerHTML = generateSourceOptions();
             document.getElementById('env-move-cash-to').innerHTML = db.cashSafe.locations.map(l => `<option value="${l.id}">${l.icon} ${l.name} (${l.balance.toLocaleString()})</option>`).join('') || '<option value="">-- مفيش أماكن كاش --</option>';
             document.getElementById('env-move-cash-keep').checked = false;
+            // قايمة آخر الإيداعات عشان تربط التخصيص بالقبضة اللي جه منها
+            let depSel = document.getElementById('env-move-dep');
+            if(depSel) {
+                let events = (typeof getOwnerIncomeEvents === 'function') ? getOwnerIncomeEvents().slice(0, 25) : [];
+                depSel.innerHTML = '<option value="">-- مش مربوط بإيداع معيّن --</option>' + events.map(ev => `<option value="${ev.txId}">${ev.date} • ${ev.amount.toLocaleString()} ج.م • ${(ev.note||'').slice(0,28)}</option>`).join('');
+                if(prefill.sourceTxId) depSel.value = prefill.sourceTxId;
+            }
+            document.getElementById('env-move-dep-wrap').classList.toggle('hidden', direction !== 'in');
             if(direction === 'in') {
                 document.getElementById('env-move-title').innerText = 'تخصيص فلوس لجيب';
                 document.getElementById('env-move-desc').innerText = 'المبلغ ده هيتحسب مخصص وهيتقل من "الفلوس اللي تنفع تصرفها"، بس هيفضل مكانه في حسابك/كاشك زي ما هو - مفيش أي صرف فعلي دلوقتي.';
@@ -2556,7 +2640,17 @@
             // في حالة التحويل لشخص، خصم الجيب بيحصل جوه applyPersonTransfer نفسها
             // وفي حالة السحب الكاش مع "سيبه محجوز"، الجيب مبيتقلش لأن الفلوس لسه متخصصة لنفس الغرض
             if(!didTransfer && !(didCash && keepEarmarked)) {
-                if(direction === 'in') applyEnvelopeIn(envelopeId, amount, date, note, envLinks);
+                if(direction === 'in') {
+                    let envTxId = applyEnvelopeIn(envelopeId, amount, date, note, envLinks);
+                    // نربط التخصيص بالإيداع اللي جه منه لو حدده المستخدم
+                    let depSelEl = document.getElementById('env-move-dep');
+                    let depTxId = depSelEl ? depSelEl.value : '';
+                    if(depTxId) {
+                        let envTx = db.envelopeTransactions.find(t => t.id === envTxId);
+                        let depTx = db.transactions.find(t => t.id === depTxId) || db.cashSafe.transactions.find(t => t.id === depTxId);
+                        if(envTx) { envTx.sourceTxId = depTxId; if(depTx && depTx.batchId) envTx.batchId = depTx.batchId; }
+                    }
+                }
                 else applyEnvelopeOut(envelopeId, amount, date, envNote, envLinks);
             }
             closeModal('envelopeMoveModal'); saveApp();
@@ -3683,7 +3777,7 @@
             let iHtml = ''; db.visa.installments.slice().reverse().forEach(inst => { let schedulesHtml = inst.schedules.map((sch, index) => `<div class="flex justify-between items-center py-3 border-t border-slate-50 ${sch.isPaid ? 'opacity-40 grayscale' : ''} transition-all"><div class="text-xs font-bold text-slate-700">قسط ${index + 1}: ${arabicMonths[sch.month - 1]} ${sch.year}</div><div class="flex items-center gap-4"><span class="text-sm font-black text-orange-500">${sch.amount.toLocaleString()}</span><label class="cursor-pointer relative"><input type="checkbox" class="sr-only checkbox-custom" ${sch.isPaid ? 'checked' : ''} onchange="toggleVisaInstMonth('${inst.id}', '${sch.id}')"><div class="w-6 h-6 border-2 border-slate-300 rounded-lg flex items-center justify-center bg-white"><svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div></label></div></div>`).join(''); iHtml += `<div class="bg-white rounded-3xl border border-slate-100 shadow-soft overflow-hidden mb-5"><div class="p-5 bg-slate-50/50 flex justify-between items-start"><div><h4 class="font-black text-slate-800">${inst.desc}</h4><p class="text-xs font-bold text-slate-400 mt-1.5">الإجمالي: ${inst.total.toLocaleString()} | ${inst.months} شهور</p></div><button onclick="deleteVisaInst('${inst.id}')" class="text-rose-400 hover:text-rose-600 bg-rose-50 w-10 h-10 rounded-2xl flex items-center justify-center transition-all"><i class="fa-solid fa-trash-can"></i></button></div><div class="px-5 py-2">${schedulesHtml}</div></div>`; });
             document.getElementById('v-installmentsList').innerHTML = iHtml || '<p class="text-center text-slate-400 font-bold text-sm py-6">لا توجد أقساط</p>';
             let sRows = ''; let aRows = ''; db.visa.transactions.slice().reverse().forEach(t => { let isBuy = t.type === 'buy'; let typeColor = isBuy ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'; let catBadge = (isBuy && t.category) ? `<span class="text-[9px] bg-brand-50 text-brand-600 border px-2 py-1 rounded-lg ml-2">${t.category}</span> ` : '';
-                if (!t.isArchived) { sRows += `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs font-bold text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 font-bold text-slate-700 td-content">${catBadge}${t.desc} <br><span class="text-[10px] ${typeColor} border px-2 py-0.5 rounded-lg font-black mt-1 inline-block">${isBuy?'سحب':'سداد'}</span>${isBuy && t.isAdvance ? '<span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg font-black mt-1 mr-1 inline-block">سحب كاش (مش مصروف)</span>' : ''}</td><td data-label="المبلغ" class="p-4 text-sm font-black ${isBuy ? 'text-rose-500' : 'text-emerald-500'} sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><div class="flex justify-center gap-2">${isBuy ? `<button onclick="toggleVisaTxAdvance('${t.id}')" class="${t.isAdvance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} px-3 py-1.5 rounded-xl text-xs font-bold transition-all" title="سحب كاش يعني دين مش مصروف">${t.isAdvance ? 'رجّعها مشتريات' : 'دي سحب كاش'}</button>` : ''}<button onclick="archiveVisaTx('${t.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">أرشفة</button><button onclick="deleteVisaTx('${t.id}')" class="text-rose-400 bg-rose-50 px-2.5 rounded-xl"><i class="fa-solid fa-trash text-xs"></i></button></div></td></tr>`; } 
+                if (!t.isArchived) { sRows += `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs font-bold text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 font-bold text-slate-700 td-content">${catBadge}${t.desc} <br><span class="text-[10px] ${typeColor} border px-2 py-0.5 rounded-lg font-black mt-1 inline-block">${isBuy?'سحب':'سداد'}</span>${isBuy && t.isAdvance ? '<span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg font-black mt-1 mr-1 inline-block">سحب كاش (مش مصروف)</span>' : ''}</td><td data-label="المبلغ" class="p-4 text-sm font-black ${isBuy ? 'text-rose-500' : 'text-emerald-500'} sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><div class="flex justify-center gap-2"><button onclick="openVisaTxEdit('${t.id}')" class="bg-brand-50 hover:bg-brand-100 text-brand-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">تعديل</button>${isBuy ? `<button onclick="toggleVisaTxAdvance('${t.id}')" class="${t.isAdvance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} px-3 py-1.5 rounded-xl text-xs font-bold transition-all" title="سحب كاش يعني دين مش مصروف">${t.isAdvance ? 'رجّعها مشتريات' : 'دي سحب كاش'}</button>` : ''}<button onclick="archiveVisaTx('${t.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">أرشفة</button><button onclick="deleteVisaTx('${t.id}')" class="text-rose-400 bg-rose-50 px-2.5 rounded-xl"><i class="fa-solid fa-trash text-xs"></i></button></div></td></tr>`; } 
                 else { aRows += `<tr class="border-b border-slate-50 mobile-table"><td data-label="التاريخ" class="p-4 text-xs text-slate-400 sm:text-center">${t.date || '-'}</td><td data-label="البيان" class="p-4 text-sm text-slate-400 font-bold line-through td-content">${t.desc}</td><td data-label="المبلغ" class="p-4 text-sm font-black text-slate-400 sm:text-center">${t.amount.toLocaleString()}</td><td data-label="إجراء" class="p-4 text-center"><button onclick="unarchiveVisaTx('${t.id}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-4 py-1.5 rounded-xl transition-all">استرجاع</button></td></tr>`; }
             });
             document.getElementById('v-statementTableBody').innerHTML = sRows || `<tr><td colspan="4" class="text-center p-10 font-bold text-sm text-slate-400">البيان فارغ</td></tr>`; document.getElementById('v-archiveTableBody').innerHTML = aRows || `<tr><td colspan="4" class="text-center p-10 font-bold text-sm text-slate-400">الأرشيف فارغ</td></tr>`;
@@ -3711,6 +3805,42 @@
             saveApp();
             if(isAdvance) Swal.fire('اتسجل ✅', `<b>${amount.toLocaleString()}</b> ج.م اتسحبوا من الفيزا ونزلوا في <b>${getSourceLabel(advDest)}</b>. المبلغ ده دين على الفيزا، ومش محسوب دخل — المصروف هيتسجل لما تصرفه.`, 'success');
             switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+        }
+        // ---------- تعديل حركة فيزا ----------
+        function openVisaTxEdit(id) {
+            let t = db.visa.transactions.find(x => x.id === id); if(!t) return;
+            document.getElementById('vedit-id').value = id;
+            document.getElementById('vedit-type').value = t.type;
+            document.getElementById('vedit-amount').value = t.amount;
+            document.getElementById('vedit-date').value = t.date;
+            document.getElementById('vedit-desc').value = t.desc || '';
+            document.getElementById('vedit-category').innerHTML = '<option value="">-- بدون تصنيف --</option>' + db.categories.out.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('vedit-category').value = t.category || '';
+            document.getElementById('vedit-is-advance').checked = !!t.isAdvance;
+            toggleVisaEditFields();
+            openModal('visaTxEditModal');
+        }
+        function toggleVisaEditFields() {
+            let isBuy = document.getElementById('vedit-type').value === 'buy';
+            document.getElementById('vedit-cat-wrap').classList.toggle('hidden', !isBuy);
+            document.getElementById('vedit-adv-wrap').classList.toggle('hidden', !isBuy);
+        }
+        function saveVisaTxEdit() {
+            let id = document.getElementById('vedit-id').value;
+            let t = db.visa.transactions.find(x => x.id === id); if(!t) return;
+            let amount = parseFloat(document.getElementById('vedit-amount').value);
+            let date = document.getElementById('vedit-date').value;
+            let desc = document.getElementById('vedit-desc').value.trim();
+            let type = document.getElementById('vedit-type').value;
+            if(!amount || amount <= 0 || !date || !desc) { Swal.fire('خطأ', 'أكمل البيان والمبلغ والتاريخ', 'error'); return; }
+            t.amount = amount; t.date = date; t.desc = desc; t.type = type;
+            if(type === 'buy') {
+                t.isAdvance = document.getElementById('vedit-is-advance').checked;
+                t.category = t.isAdvance ? null : (document.getElementById('vedit-category').value || '');
+            } else { t.isAdvance = false; t.category = null; }
+            closeModal('visaTxEditModal'); saveApp();
+            switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+            Swal.fire('اتعدلت ✅', 'حركة الفيزا اتحدّثت.', 'success');
         }
         // تعليم حركة فيزا قديمة إنها سحب كاش (دين) مش مشتريات، عشان متتحسبش مصروف في التحليل
         function toggleVisaTxAdvance(id) {
@@ -4472,8 +4602,8 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.4.0';
-        const APP_BUILD = '2026-09-20';
+        const APP_VERSION = '2.5.0';
+        const APP_BUILD = '2026-09-21';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
         let lockFailCount = 0;
