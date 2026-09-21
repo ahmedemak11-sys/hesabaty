@@ -2304,12 +2304,22 @@
                 let amountColor = t.type === 'in' ? 'text-emerald-600' : 'text-rose-600';
                 let sign = t.type === 'in' ? '+' : '-';
                 let catBadge = t.category ? `<span class="text-[9px] bg-brand-50 text-brand-600 border border-brand-100 px-2 py-0.5 rounded-lg mr-1">${t.category}</span>` : '';
+                let srcBadge = '';
+                if(t.type === 'in') {
+                    let k = t.cashSource || (t.isTransfer ? 'acc' : 'new');
+                    let isNew = k === 'new';
+                    srcBadge = `<span class="text-[9px] font-black px-2 py-0.5 rounded-lg mr-1 ${isNew ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">${CASH_SOURCE_LABELS[k] || 'من حساب'}</span>`;
+                }
                 recentHtml += `<div class="flex justify-between items-center bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
-                    <div>
-                        <p class="text-xs font-bold text-slate-700">${catBadge}${t.note || '-'}</p>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">${srcBadge}${catBadge}${t.note || '-'}</p>
                         <p class="text-[10px] font-bold mt-1 text-slate-400">${t.date || '-'} • ${loc ? loc.name : '-'}</p>
                     </div>
-                    <span class="text-sm font-black ${amountColor}" dir="ltr">${sign}${t.amount.toLocaleString()}</span>
+                    <span class="text-sm font-black ${amountColor} ml-2" dir="ltr">${sign}${t.amount.toLocaleString()}</span>
+                    <div class="flex gap-1 no-print">
+                        <button onclick="openModal('addCashTxModal','${t.id}')" class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 hover:text-brand-600"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteCashTx('${t.id}'); renderCashSafe()" class="w-7 h-7 rounded-lg bg-rose-50 text-rose-500"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    </div>
                 </div>`;
             });
             document.getElementById('cs-recent-list').innerHTML = recentHtml || '<p class="text-sm text-slate-400 text-center py-6">لا توجد حركات كاش مسجلة بعد.</p>';
@@ -4602,7 +4612,7 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.5.0';
+        const APP_VERSION = '2.5.1';
         const APP_BUILD = '2026-09-21';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
