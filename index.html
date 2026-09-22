@@ -1209,7 +1209,10 @@
                     <input type="number" id="cashtx-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
                     <input type="date" id="cashtx-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
                 </div>
-                <select id="cashtx-category" class="w-full p-3.5 bg-brand-50 border border-brand-200 rounded-2xl text-sm font-bold text-brand-800"></select>
+                <div class="flex gap-2">
+                    <select id="cashtx-category" class="flex-1 p-3.5 bg-brand-50 border border-brand-200 rounded-2xl text-sm font-bold text-brand-800"></select>
+                    <button type="button" onclick="quickAddCashCategory()" title="ضيف تصنيف جديد على طول" class="w-12 h-12 shrink-0 bg-brand-600 hover:brightness-110 text-white rounded-2xl font-black text-xl transition-all">+</button>
+                </div>
                 <input type="text" id="cashtx-note" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" placeholder="البيان / الملاحظات">
                 <div id="cashtx-transfer-wrap" class="hidden">
                     <label class="text-xs font-bold text-amber-600 mb-1 block">الكاش ده جاي منين؟</label>
@@ -2138,14 +2141,40 @@
                 btnIn.className = "flex-1 py-3 text-sm font-black rounded-xl transition-all bg-gradient-to-r from-emerald-500 to-teal-400 text-white shadow-md";
                 btnOut.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all text-slate-400 border border-transparent";
             }
-            let catSelect = document.getElementById('cashtx-category');
-            if(catSelect) { let options = type === 'in' ? db.categories.in : db.categories.out; catSelect.innerHTML = '<option value="">-- تصنيف (اختياري) --</option>' + options.map(c => `<option value="${c}">${c}</option>`).join(''); }
+            renderCashCategoryOptions();
             let distBtn = document.getElementById('cashtx-distribute-btn'); if(distBtn) distBtn.classList.toggle('hidden', type !== 'in');
             // مصدر الكاش يخص الإيداعات بس
             let trWrap = document.getElementById('cashtx-transfer-wrap');
             if(trWrap) { trWrap.classList.toggle('hidden', type !== 'in'); if(type === 'in') updateCashSourceHint(); }
         }
-        const CASH_SOURCE_LABELS = { new: 'دخل جديد', acc: 'من حساب', visa: 'من الفيزا', env: 'من جيب' };
+        function renderCashCategoryOptions(selectedVal) {
+            let catSelect = document.getElementById('cashtx-category'); if(!catSelect) return;
+            let options = currentCashTxType === 'in' ? db.categories.in : db.categories.out;
+            let val = selectedVal !== undefined ? selectedVal : catSelect.value;
+            catSelect.innerHTML = '<option value="">-- تصنيف (اختياري) --</option>' + options.map(c => `<option value="${c}">${c}</option>`).join('');
+            if(val) catSelect.value = val;
+        }
+        // إضافة تصنيف جديد على طول وانت بتسجل حركة كاش، من غير ما تروح للإعدادات
+        function quickAddCashCategory() {
+            let type = currentCashTxType === 'in' ? 'in' : 'out';
+            Swal.fire({
+                title: 'تصنيف جديد',
+                input: 'text',
+                inputPlaceholder: 'مثلاً: أكل، مواصلات...',
+                showCancelButton: true,
+                confirmButtonText: 'ضيف واختار',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#4f46e5'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                let val = (result.value || '').trim();
+                if(!val) return;
+                if(!db.categories[type].includes(val)) db.categories[type].push(val);
+                renderCashCategoryOptions(val);
+                saveApp();
+            });
+        }
+        const CASH_SOURCE_LABELS = { new: 'دخل جديد', acc: 'من حساب', visa: 'من الفيزا', env: 'من جيب', xfer: 'من مكان كاش تاني' };
         function updateCashSourceHint() {
             let kind = document.getElementById('cashtx-source-kind').value;
             let hint = document.getElementById('cashtx-source-hint'); if(!hint) return;
@@ -2218,8 +2247,9 @@
             if (fromId === toId) { Swal.fire('تنبيه', 'لا يمكن التحويل لنفس المكان!', 'warning'); return; }
             if (!amt || amt <= 0) { Swal.fire('خطأ', 'أدخل مبلغ صحيح', 'error'); return; }
             let fromLoc = db.cashSafe.locations.find(l => l.id === fromId); let toLoc = db.cashSafe.locations.find(l => l.id === toId);
-            db.cashSafe.transactions.push({ id: generateId(), locationId: fromId, type: 'out', amount: amt, date: date, note: `تحويل كاش إلى ${toLoc.name}` });
-            db.cashSafe.transactions.push({ id: generateId(), locationId: toId, type: 'in', amount: amt, date: date, note: `تحويل كاش من ${fromLoc.name}` });
+            // نقل بين أماكن كاشك انت مش دخل ولا صرف حقيقي — لازم يتعلّم isTransfer عشان متتحسبش دخل جديد
+            db.cashSafe.transactions.push({ id: generateId(), locationId: fromId, type: 'out', amount: amt, date: date, note: `تحويل كاش إلى ${toLoc.name}`, isTransfer: true });
+            db.cashSafe.transactions.push({ id: generateId(), locationId: toId, type: 'in', amount: amt, date: date, note: `تحويل كاش من ${fromLoc.name}`, isTransfer: true, cashSource: 'xfer' });
             recalcCashSafeBalances(); closeModal('transferCashModal'); saveApp();
         }
 
@@ -4612,8 +4642,8 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.5.1';
-        const APP_BUILD = '2026-09-21';
+        const APP_VERSION = '2.6.0';
+        const APP_BUILD = '2026-09-22';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
         let lockFailCount = 0;
