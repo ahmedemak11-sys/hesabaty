@@ -8,7 +8,7 @@
     <!-- تثبيت التطبيق على الموبايل (PWA) -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6d28d9">
-    <meta name="description" content="إدارة فلوسك بالكامل: الحسابات والكاش، الجيوب، الجمعيات، الفيزا والأقساط، والميزانية الشهرية.">
+    <meta name="description" content="فلوسك ودخلك ومصاريفك في مكان واحد: الحسابات، الناس، الجمعيات، الفيزا والأقساط، والميزانية.">
     <!-- تطبيق شخصي: بنمنع محركات البحث إنها تفهرسه عشان محدش يلاقيه بالصدفة من جوجل -->
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
     <meta name="googlebot" content="noindex, nofollow">
@@ -237,7 +237,7 @@
                 <i class="fa-solid fa-right-left text-base"></i>
             </button>
             <button onclick="switchPage('tx')" class="bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:brightness-110 text-white px-4 sm:px-5 rounded-2xl font-extrabold shadow-glow transition-all flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> كاش
+                <i class="fa-solid fa-plus"></i> تسجيل
             </button>
         </div>
     </header>
@@ -258,6 +258,7 @@
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1" id="home-greeting-date"></p>
                         <h2 class="text-2xl font-black tracking-tight">أهلاً بيك 👋</h2>
                         <p class="text-[11px] text-slate-400 font-bold mt-2">دوس على أي كارت تحت عشان تفتحه على طول.</p>
+                        <button id="home-mine-line" onclick="switchPage('mine')" class="mt-3 text-right text-xs font-bold text-slate-200 bg-white/10 border border-white/10 rounded-xl px-3 py-2 hidden"></button>
                     </div>
                     <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
                         <i class="fa-solid fa-house text-xl text-brand-100"></i>
@@ -284,11 +285,11 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
                     <div class="bg-white/5 rounded-2xl p-4 border border-white/5">
-                        <p class="text-[11px] font-bold text-slate-300 mb-1">ديون للآخرين (خصوم)</p>
+                        <p class="text-[11px] font-bold text-slate-300 mb-1">فلوس ناس معايا (مش ليا)</p>
                         <p class="text-lg font-black text-rose-300" id="m-owed-to-others">0</p>
                     </div>
                     <div class="bg-white/5 rounded-2xl p-4 border border-white/5">
-                        <p class="text-[11px] font-bold text-slate-300 mb-1">أموالي بالخارج (أصول)</p>
+                        <p class="text-[11px] font-bold text-slate-300 mb-1">ليا عند ناس</p>
                         <p class="text-lg font-black text-emerald-300" id="m-owed-to-me">0</p>
                     </div>
                 </div>
@@ -452,6 +453,11 @@
             </div>
         </div>
 
+        <!-- فلوسي: إجمالي فلوسك (انت واللي تبعك) + دخلك ومصاريفك شهر بشهر -->
+        <div id="page-mine" class="page no-print">
+            <div id="mm-body" class="space-y-5"></div>
+        </div>
+
         <div id="page-analysis" class="page space-y-6">
             <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                 <div class="flex justify-between items-center mb-6">
@@ -549,8 +555,21 @@
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="col-span-2 sm:col-span-1"><label class="text-xs font-bold text-slate-500 mb-1 block">التاريخ</label><input type="date" id="vtDate" class="w-full p-3 bg-slate-50 border rounded-2xl text-sm font-bold"></div>
                         <div class="col-span-2 sm:col-span-1"><label class="text-xs font-bold text-slate-500 mb-1 block">المبلغ</label><input type="number" id="vtAmount" placeholder="0.00" class="w-full p-3 bg-slate-50 border rounded-2xl text-sm font-bold"></div>
-                        <div class="col-span-2"><label class="text-xs font-bold text-brand-600 mb-1 block">تصنيف المصروف</label><select id="vtCategory" class="w-full p-3 bg-brand-50 border border-brand-100 rounded-2xl text-sm font-bold text-brand-800"></select></div>
-                        <div class="col-span-2"><label class="text-xs font-bold text-slate-500 mb-1 block">البيان</label><input type="text" id="vtDesc" placeholder="التفاصيل..." class="w-full p-3 bg-slate-50 border rounded-2xl text-sm font-bold"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-slate-500 mb-1 block">البيان</label><input type="text" id="vtDesc" oninput="mmOnVtDesc()" autocomplete="off" placeholder="مثلاً: بامبرز، شحن نت، جزمة..." class="w-full p-3 bg-slate-50 border rounded-2xl text-sm font-bold"></div>
+                        <div class="col-span-2">
+                            <div class="flex items-center justify-between mb-1.5 gap-2"><label class="text-xs font-bold text-brand-600">التصنيف (للمشتريات)</label><span id="vt-cat-hint" class="text-[10px] font-bold"></span></div>
+                            <div id="vt-cat-chips" class="flex flex-wrap gap-2"></div>
+                            <select id="vtCategory" class="hidden"></select>
+                        </div>
+                    </div>
+                    <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-3 mb-3">
+                        <label class="text-[11px] font-bold text-emerald-700 mb-1.5 block">لو ده سداد: اتدفع من أنهي حساب؟ (اختياري)</label>
+                        <select id="vtPayAcc" onchange="mmToggleVtPayPerson()" class="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-xs font-bold"></select>
+                        <div id="vtPayPersonWrap" class="hidden mt-2">
+                            <label class="text-[10px] font-bold text-slate-500 mb-1 block">من فلوس مين؟</label>
+                            <select id="vtPayPerson" class="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-xs font-bold"></select>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1.5 leading-relaxed">لو اخترت حساب، هيتخصم منه السداد لوحده ومش هيتحسب مصروف تاني (المشتريات اتحسبت يوم الشراء).</p>
                     </div>
                     <label class="flex items-start gap-2 text-[11px] font-bold text-slate-500 bg-amber-50 border border-amber-200 p-3 rounded-2xl cursor-pointer mb-3">
                         <input type="checkbox" id="vtIsAdvance" onchange="toggleVisaAdvance()" class="mt-0.5 w-4 h-4 accent-amber-500 rounded">
@@ -636,22 +655,31 @@
                 <p class="text-sm font-extrabold text-slate-700 mb-2 px-1">3. اختر الخزنة / المحفظة</p>
                 <div id="tx-account-tiles" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-6"></div>
 
-                <div id="tx-category-container" class="hidden mb-4">
-                    <p class="text-sm font-extrabold text-slate-700 mb-2 px-1">التصنيف (اختياري)</p>
-                    <select id="tx-category" class="w-full p-3.5 bg-brand-50 border border-brand-200 rounded-2xl text-sm font-bold text-brand-800"></select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <input type="number" id="tx-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black" placeholder="المبلغ">
+                <p class="text-sm font-extrabold text-slate-700 mb-2 px-1">4. المبلغ والبيان</p>
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <input type="number" inputmode="decimal" id="tx-amount" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-base font-black" placeholder="المبلغ">
                     <input type="date" id="tx-date" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold">
                 </div>
+                <input type="text" id="tx-note" oninput="mmOnTxNote()" autocomplete="off" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-4" placeholder="البيان — مثلاً: بامبرز، شحن نت، غدا...">
 
-                <label id="tx-transfer-wrap" class="hidden items-start gap-2 text-[11px] font-bold text-slate-500 bg-amber-50 border border-amber-200 p-3 rounded-2xl cursor-pointer mb-4">
+                <div id="tx-category-container" class="hidden mb-5">
+                    <div class="flex items-center justify-between mb-2 px-1 gap-2">
+                        <p class="text-sm font-extrabold text-slate-700">5. التصنيف</p>
+                        <span id="tx-cat-hint" class="text-[10px] font-bold"></span>
+                    </div>
+                    <div id="tx-cat-chips" class="flex flex-wrap gap-2"></div>
+                    <select id="tx-category" class="hidden"></select>
+                </div>
+
+                <details id="tx-advanced" class="mb-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <summary class="cursor-pointer select-none px-4 py-3 text-xs font-black text-slate-500 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> رسوم / عمولة، أو "دي مش فلوس جديدة"</summary>
+                    <div class="px-3 pb-3">
+                <label id="tx-transfer-wrap" class="hidden items-start gap-2 text-[11px] font-bold text-slate-500 bg-amber-50 border border-amber-200 p-3 rounded-2xl cursor-pointer mb-3">
                     <input type="checkbox" id="tx-is-transfer" class="mt-0.5 w-4 h-4 accent-amber-500 rounded">
-                    <span>دي مش فلوس جديدة — دي جاية من مكان تاني عندي (سحب من الفيزا، من الكاش، من حساب تاني...). علّمها عشان ما تتحسبش دخل جديد في التحليل ومتابعة الدخل.</span>
+                    <span>دي مش فلوس جديدة — جاية من مكان تاني عندي (سحب من الفيزا، من حساب تاني...). علّمها عشان ما تتحسبش دخل.</span>
                 </label>
 
-                <div class="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 mb-4">
+                <div class="bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
                     <label class="block text-xs font-bold text-orange-600 mb-2">رسوم / عمولة (اختياري)</label>
                     <div class="flex gap-2 mb-3">
                         <select id="tx-fee-type" class="w-1/3 p-2.5 bg-white border border-orange-200 rounded-xl text-xs font-bold">
@@ -668,8 +696,9 @@
                         <option value="person">يتحملها الشخص (تؤثر على حسابه)</option>
                     </select>
                 </div>
+                    </div>
+                </details>
 
-                <input type="text" id="tx-note" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-4" placeholder="البيان / الملاحظات">
                 <button onclick="saveTransaction()" class="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 hover:brightness-125 text-white py-4 rounded-2xl font-black transition-all">حفظ الحركة</button>
                 <button id="tx-distribute-btn" onclick="openDistributeIncomeFromTxPage()" class="hidden w-full mt-3 bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-700 py-3.5 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-arrows-split-up-and-left"></i> بدل ما تحفظها في مكان واحد، وزّعها على أكتر من مكان</button>
             </div>
@@ -888,6 +917,7 @@
                     <h3 class="font-extrabold text-slate-800">الأشخاص والعملاء</h3>
                     <button onclick="openModal('addPersonModal')" class="w-8 h-8 bg-brand-50 text-brand-600 rounded-full font-black">+</button>
                 </div>
+                <p class="text-[11px] font-bold text-slate-400 leading-relaxed mb-2">علّم "💼 تبعي" على أي شخص عامله عشان تفصل فلوسك انت (زي جمعية أو التزامات) — فلوسه هتتحسب في "فلوسي". الباقي فلوس ناس معاك.</p>
                 <div id="settings-persons-list" class="space-y-2"></div>
             </div>
 
@@ -913,7 +943,11 @@
             </div>
 
             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                <div class="flex justify-between items-center mb-4"><h3 class="font-extrabold text-slate-800">أماكن الخزنة الشخصية (كاش)</h3><button onclick="openModal('addCashLocationModal')" class="w-8 h-8 bg-brand-50 text-brand-600 rounded-full font-black">+</button></div>
+                <div class="flex justify-between items-center mb-3"><h3 class="font-extrabold text-slate-800">الخزنة الشخصية (كاش)</h3><button onclick="openModal('addCashLocationModal')" class="w-8 h-8 bg-brand-50 text-brand-600 rounded-full font-black">+</button></div>
+                <label class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 mb-3 cursor-pointer select-none">
+                    <span><span class="block text-xs font-black text-slate-700">إظهار الخزنة الشخصية</span><span class="block text-[10px] font-bold text-slate-400">مقفولة افتراضياً — حساب "كاش" العادي بيكفي لمعظم الناس</span></span>
+                    <input type="checkbox" id="settings-show-cash" class="w-5 h-5 accent-brand-600 rounded" onchange="db.showCashSafe = this.checked; saveApp(); buildDynamicTabs(); renderSettings();">
+                </label>
                 <div id="settings-cash-locations-list" class="space-y-2"></div>
             </div>
 
@@ -924,22 +958,6 @@
                 </div>
                 <p class="text-[11px] text-slate-400 font-bold mb-4 leading-relaxed">رقم سري بيتطلب منك أول ما تفتح التطبيق، عشان محدش يمسك موبايلك ويشوف حساباتك.</p>
                 <div id="lock-settings-body" class="space-y-3"></div>
-            </div>
-
-            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                <h3 class="font-extrabold text-slate-800 mb-1"><i class="fa-solid fa-layer-group text-brand-600 ml-1"></i> رصيدك في كارتك بصفحة "الملخص"</h3>
-                <p class="text-[11px] text-slate-400 font-bold mb-4 leading-relaxed">اختار الرقم اللي عاوز يظهرلك في كارتك (أنا / المالك) جوه صفحة الملخص، ولما تدوس عليه يفتحلك التفاصيل بتاعته على طول.</p>
-                <select id="home-balance-mode" onchange="setHomeBalanceMode(this.value)" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-3">
-                    <option value="total">الرصيد الإجمالي (شامل كل الجيوب)</option>
-                    <option value="free">المتبقي بعد توزيع الجيوب (المتاح للصرف)</option>
-                    <option value="withdrawable">المتاح للسحب من البنك (من غير الكاش ولا الجيوب)</option>
-                    <option value="envelope">رصيد جيب معيّن</option>
-                    <option value="envelopes">مجموع أكتر من جيب</option>
-                </select>
-                <div id="home-balance-envelope-wrap" class="hidden">
-                    <select id="home-balance-envelope" onchange="setHomeBalanceEnvelope(this.value)" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold"></select>
-                </div>
-                <div id="home-balance-envelopes-wrap" class="hidden space-y-2"></div>
             </div>
 
             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
@@ -987,6 +1005,9 @@
 
     </main>
 
+    <div id="mmModal" class="modal no-print" onclick="if(event.target===this) { closeModal('mmModal'); if(currentTab==='mine') renderMine(); }">
+        <div class="modal-content"><div id="mm-modal-body"></div></div>
+    </div>
 
     <div id="transferModal" class="modal no-print" onclick="if(event.target===this) closeModal('transferModal')">
         <div class="modal-content"><h3 class="font-black text-xl mb-6 text-brand-800"><i class="fa-solid fa-right-left"></i> تحويل بين الأشخاص</h3>
@@ -1417,7 +1438,6 @@
                     <label class="text-xs font-bold text-slate-500 mb-1 block">القسط ده هيتدفع منين؟</label>
                     <select id="gpay-kind" onchange="toggleGpayKind()" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold mb-3">
                         <option value="acc">من حساب / كاش عادي</option>
-                        <option value="env">من جيب من جيوبي</option>
                     </select>
                     <div id="gpay-env-wrap" class="hidden mb-3">
                         <label class="text-xs font-bold text-amber-600 mb-1 block">أنهي جيب؟</label>
@@ -1584,12 +1604,13 @@
         document.getElementById('print-date').innerText = `تاريخ الإصدار: ${today.toLocaleDateString('ar-EG')} - الساعة: ${today.toLocaleTimeString('ar-EG')}`;
 
         // ====== ترتيب الكروت والتبويبات ======
-        const HOME_CARD_KEYS = ['merged','income','assistant','tx','gam3eya','analysis','visa','settings','persons','cash','envelopes'];
-        const TAB_KEYS = ['home','merged','assistant','tx','persons','cash','envelopes','income','gam3eya','analysis','visa','settings'];
+        // v3: "فلوسي" بقت مكان التحليل ومتابعة الدخل، والجيوب اتشالت
+        const HOME_CARD_KEYS = ['mine','merged','tx','visa','gam3eya','assistant','persons','settings','cash'];
+        const TAB_KEYS = ['home','mine','merged','tx','persons','visa','gam3eya','assistant','settings','cash'];
         const ORDER_LABELS = {
-            merged: '🧾 الملخص', income: '💸 متابعة الدخل', assistant: '🤖 المساعد الذكي', tx: '➕ تسجيل عملية',
-            gam3eya: '👥 الجمعيات', analysis: '📊 التحليل', visa: '💳 الفيزا', settings: '⚙️ الإعدادات',
-            persons: '👤 كروت الأشخاص', cash: '💰 الخزنة الشخصية', envelopes: '🧧 الجيوب', home: '🏠 الرئيسية'
+            mine: '💼 فلوسي', merged: '🧾 الملخص', assistant: '🤖 المساعد الذكي', tx: '➕ تسجيل عملية',
+            gam3eya: '👥 الجمعيات', visa: '💳 الفيزا', settings: '⚙️ الإعدادات',
+            persons: '👤 كروت الأشخاص', cash: '💰 الخزنة الشخصية', home: '🏠 الرئيسية'
         };
         // بنرجّع الترتيب المحفوظ، وأي مفتاح جديد اتضاف في تحديث بيتحط في آخر القايمة تلقائي
         function orderedKeys(stored, canonical) {
@@ -1639,6 +1660,7 @@
             let tabBtn = (pageId, icon, label, brand) => `<button class="${btnClasses} ${currentTab===pageId?activeClasses:inactiveClasses}" onclick="switchPage('${pageId}', this)"><i class="fa-${brand?'brands':'solid'} ${icon}"></i> ${label}</button>`;
             let parts = {
                 home: () => tabBtn('home', 'fa-house', 'الرئيسية'),
+                mine: () => tabBtn('mine', 'fa-wallet', 'فلوسي'),
                 merged: () => tabBtn('merged', 'fa-layer-group', 'الملخص'),
                 assistant: () => tabBtn('assistant', 'fa-robot', 'المساعد الذكي'),
                 tx: () => tabBtn('tx', 'fa-plus', 'تسجيل عملية'),
@@ -1647,11 +1669,8 @@
                     let dot = `<div class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></div>`;
                     return `<button class="${btnClasses} ${isActive?activeClasses:inactiveClasses}" onclick="openPersonLedger('${p.id}', this)">${dot} ${p.name}</button>`;
                 }).join(''),
-                cash: () => tabBtn('cash', 'fa-sack-dollar', 'الخزنة الشخصية'),
-                envelopes: () => tabBtn('envelopes', 'fa-box-archive', 'الجيوب'),
-                income: () => tabBtn('income', 'fa-money-bill-trend-up', 'متابعة الدخل'),
+                cash: () => db.showCashSafe ? tabBtn('cash', 'fa-sack-dollar', 'الخزنة الشخصية') : '',
                 gam3eya: () => tabBtn('gam3eya', 'fa-people-arrows', 'الجمعيات'),
-                analysis: () => tabBtn('analysis', 'fa-chart-pie', 'التحليل'),
                 visa: () => tabBtn('visa', 'fa-cc-visa', 'الفيزا', true),
                 settings: () => tabBtn('settings', 'fa-gear', 'الإعدادات')
             };
@@ -1664,6 +1683,7 @@
             targetPage.style.display = 'block'; setTimeout(() => targetPage.classList.add('active'), 10);
             currentTab = pageId; buildDynamicTabs();
             if(pageId === 'home') renderHome();
+            if(pageId === 'mine') renderMine();
             if(pageId === 'analysis') renderAnalysis();
             if(pageId === 'cash') renderCashSafe();
             if(pageId === 'envelopes') renderEnvelopes();
@@ -1687,15 +1707,20 @@
             // كروت ديناميكية (أشخاص/كاش/جيوب): بتظهر بس لو فيها رصيد أو عليها حركة، عشان الرئيسية متزحمش بحاجات فاضية
             let cashTotal = db.cashSafe.locations.reduce((s,l)=>s+l.balance,0);
             let cashHasActivity = db.cashSafe.transactions.length > 0;
-            let envTotal = getTotalEnvelopeBalance();
-            let envHasActivity = db.envelopeTransactions.length > 0;
+            let mmT = mmTotals();
+            let mk = new Date().toISOString().slice(0, 7);
+            let mmMonth = mmMonthData(mk, '').sum;
+            let mineLine = document.getElementById('home-mine-line');
+            if(mineLine) {
+                mineLine.classList.remove('hidden');
+                mineLine.innerHTML = `💼 فلوسي: <b class="text-white" dir="ltr">${mmFmt(mmT.myMoney)}</b> ج.م &nbsp;•&nbsp; صرفت في ${arabicMonths[new Date().getMonth()]}: <b class="text-white" dir="ltr">${mmFmt(mmMonth.exp)}</b>`;
+            }
             let builders = {
-                merged: () => [{ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: 'نظرة عامة على كل حساباتك', action: "switchPage('merged')" }],
-                income: () => [{ id: 'income', icon: 'fa-money-bill-trend-up', color: '#059669', title: 'متابعة الدخل', sub: 'قبضتك راحت فين', action: "switchPage('income')" }],
+                mine: () => [{ id: 'mine', icon: 'fa-wallet', color: '#7c3aed', title: 'فلوسي', sub: mmFmt(mmT.myMoney) + ' ج.م', subLine2: 'دخلك ومصاريفك', action: "switchPage('mine')" }],
+                merged: () => [{ id: 'merged', icon: 'fa-layer-group', color: '#4f46e5', title: 'الملخص', sub: 'كل الحسابات والناس', action: "switchPage('merged')" }],
                 assistant: () => [{ id: 'assistant', icon: 'fa-robot', color: '#8b5cf6', title: 'المساعد الذكي', sub: 'اتكلم بالعامية', action: "switchPage('assistant')" }],
                 tx: () => [{ id: 'tx', icon: 'fa-plus', color: '#ec4899', title: 'تسجيل عملية', sub: 'صرف أو قبض', action: "switchPage('tx')" }],
                 gam3eya: () => [{ id: 'gam3eya', icon: 'fa-people-arrows', color: '#10b981', title: 'الجمعيات', sub: db.gam3ya.list.filter(g=>g.status!=='received').length + ' نشطة', action: "switchPage('gam3eya')" }],
-                analysis: () => [{ id: 'analysis', icon: 'fa-chart-pie', color: '#4f46e5', title: 'التحليل', sub: 'مصاريفك بالتفصيل', action: "switchPage('analysis')" }],
                 visa: () => [{ id: 'visa', icon: 'fa-cc-visa', color: '#ec4899', title: 'الفيزا', sub: 'المتابعة والأقساط', action: "switchPage('visa')", brand: true }],
                 settings: () => [{ id: 'settings', icon: 'fa-gear', color: '#64748b', title: 'الإعدادات', sub: 'النسخ الاحتياطي وغيره', action: "switchPage('settings')" }],
                 persons: () => db.persons.filter(p => {
@@ -1706,8 +1731,7 @@
                     let stats = getPersonStats(p.id);
                     return { id: 'person_' + p.id, icon: 'fa-user', color: p.color, title: p.name, sub: stats.total.toLocaleString() + ' ج.م', action: `openPersonLedger('${p.id}')` };
                 }),
-                cash: () => (cashTotal !== 0 || cashHasActivity) ? [{ id: 'cash', icon: 'fa-sack-dollar', color: '#f59e0b', title: 'الخزنة الشخصية', sub: cashTotal.toLocaleString() + ' ج.م', action: "switchPage('cash')" }] : [],
-                envelopes: () => (envTotal !== 0 || envHasActivity) ? [{ id: 'envelopes', icon: 'fa-box-archive', color: '#06b6d4', title: 'الجيوب', sub: getFreeBalance().toLocaleString() + ' ج.م متاح', action: "switchPage('envelopes')" }] : []
+                cash: () => (db.showCashSafe && (cashTotal !== 0 || cashHasActivity)) ? [{ id: 'cash', icon: 'fa-sack-dollar', color: '#f59e0b', title: 'الخزنة الشخصية', sub: cashTotal.toLocaleString() + ' ج.م', action: "switchPage('cash')" }] : []
             };
             let cards = [];
             getHomeCardOrder().forEach(k => { if(builders[k]) cards = cards.concat(builders[k]()); });
@@ -1790,11 +1814,14 @@
         function toggleCategoryField() {
             let p = db.persons.find(x => x.id === document.getElementById('tx-person-value').value);
             let catContainer = document.getElementById('tx-category-container');
-            if (p && p.trackCategories) {
+            // التصنيف بيظهر لفلوسك انت (المالك واللي تبعك) — دي اللي بتتحلل
+            if (p && (p.trackCategories || isMinePerson(p))) {
                 catContainer.classList.remove('hidden');
-                let options = currentTxType === 'in' ? db.categories.in : db.categories.out;
-                document.getElementById('tx-category').innerHTML = '<option value="">-- اختياري --</option>' + options.map(c => `<option value="${c}">${c}</option>`).join('');
-            } else { catContainer.classList.add('hidden'); }
+                let sel = document.getElementById('tx-category').value;
+                let list = currentTxType === 'in' ? db.categories.in : db.categories.out;
+                mmRenderTxCatChips(list.includes(sel) ? sel : '');
+                if(!mmTxCatManual) mmOnTxNote();
+            } else { catContainer.classList.add('hidden'); document.getElementById('tx-category').value = ''; }
         }
 
         // ملخص سريع بأرصدة كل الخزائن أعلى صفحة تسجيل العملية
@@ -1819,6 +1846,7 @@
                     ${isSelected ? '<i class="fa-solid fa-circle-check text-brand-500 text-sm absolute top-1.5 left-1.5"></i>' : ''}
                     <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-white text-sm font-black shadow-sm" style="background:${p.color}">${p.name.charAt(0)}</div>
                     <span class="text-[11px] font-extrabold text-slate-700 text-center leading-tight line-clamp-1">${p.name}</span>
+                    ${isMinePerson(p) ? '<span class="absolute top-1.5 right-1.5 text-[10px]" title="فلوسي">💼</span>' : ''}
                 </button>`;
             }).join('');
         }
@@ -1883,16 +1911,20 @@
                     document.getElementById('tx-fee-payer').value = t.feePayer || 'account';
                     document.getElementById('tx-fee-payer-toggle').checked = (t.feePayer === 'person');
                     renderTxPersonTiles(); renderTxAccountTiles();
-                    document.getElementById('tx-category-container').classList.remove('hidden');
+                    mmTxCatManual = !!t.category && !t.autoCat; mmTxCatAuto = !!t.autoCat;
+                    document.getElementById('tx-category').value = '';
                     toggleCategoryField();
-                    if(t.category) document.getElementById('tx-category').value = t.category;
+                    if(!document.getElementById('tx-category-container').classList.contains('hidden')) mmRenderTxCatChips(t.category || '');
                     document.getElementById('tx-is-transfer').checked = !!t.isTransfer;
+                    document.getElementById('tx-advanced').open = !!(t.isTransfer || t.fee);
                 }
             } else {
                 hiddenId.value = "";
                 titleEl.innerText = "تسجيل عملية جديدة";
                 cancelBtn.classList.add('hidden');
                 document.getElementById('tx-is-transfer').checked = false;
+                document.getElementById('tx-advanced').open = false;
+                mmResetTxCat(); document.getElementById('tx-category').value = '';
                 setTxType('out');
                 document.getElementById('tx-person-value').value = currentPersonId || '';
                 document.getElementById('tx-acc-value').value = '';
@@ -2047,9 +2079,15 @@
             if(!perId) { Swal.fire('تنبيه', 'برجاء اختيار الشخص أولاً!', 'warning'); return; }
             if(!accId) { Swal.fire('تنبيه', 'برجاء اختيار الخزنة / المحفظة!', 'warning'); return; }
             if(!amt || amt <= 0) { Swal.fire('خطأ', 'برجاء إدخال مبلغ صحيح!', 'error'); return; }
+            let prev = editId ? db.transactions.find(x => x.id === editId) : null;
             if(editId) { db.transactions = db.transactions.filter(x => x.id !== editId); }
             const isTransferIn = currentTxType === 'in' && document.getElementById('tx-is-transfer').checked;
-            db.transactions.push({ id: editId || generateId(), accountId: accId, personId: perId, type: currentTxType, amount: amt, fee: fee, feeType: feeType, feeVal: feeVal, feePayer: feePayer, category: category, date: date, note: note, isArchived: false, isTransfer: isTransferIn });
+            // التصنيف: لو اتختار بإيدك التطبيق بيتعلّمه، ولو اتختار لوحده بنعلّمه ✨
+            if(category) { mmEnsureCategory(category, currentTxType); if(mmTxCatManual) mmLearn(document.getElementById('tx-note').value, category); }
+            let newTx = { id: editId || generateId(), accountId: accId, personId: perId, type: currentTxType, amount: amt, fee: fee, feeType: feeType, feeVal: feeVal, feePayer: feePayer, category: category, date: date, note: note, isArchived: false, isTransfer: isTransferIn, autoCat: !!(category && !mmTxCatManual) };
+            if(prev && prev.peerId) newTx.peerId = prev.peerId;
+            if(category === MM_VISA_PAY_CAT) newTx.isVisaPay = true;
+            db.transactions.push(newTx);
             recalculateAllAccountBalances();
             saveApp();
             if(editId) {
@@ -2067,6 +2105,10 @@
                 document.getElementById('tx-fee-payer').value = 'account';
                 document.getElementById('tx-fee-payer-toggle').checked = false;
                 document.getElementById('tx-date').valueAsDate = new Date();
+                document.getElementById('tx-is-transfer').checked = false;
+                document.getElementById('tx-advanced').open = false;
+                mmResetTxCat(); document.getElementById('tx-category').value = '';
+                toggleCategoryField();
                 renderTxAccountsSummary();
                 renderTxAccountTiles();
             }
@@ -2080,8 +2122,8 @@
             let suffix = extraNote ? ` - ${extraNote}` : '';
             let envObj = envelopeId ? db.envelopes.find(e => e.id === envelopeId) : null;
             let envTag = envObj ? ` (من جيب ${envObj.name})` : '';
-            db.transactions.push({ id: generateId(), accountId: accId, personId: fId, type: 'out', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل داخلي إلى ${toName}${envTag}${suffix}`, isArchived: false });
-            db.transactions.push({ id: generateId(), accountId: accId, personId: tId, type: 'in', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل داخلي من ${fromName}${suffix}`, isArchived: false });
+            db.transactions.push({ id: generateId(), accountId: accId, personId: fId, type: 'out', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل داخلي إلى ${toName}${envTag}${suffix}`, isArchived: false, peerId: tId });
+            db.transactions.push({ id: generateId(), accountId: accId, personId: tId, type: 'in', amount: amt, fee: 0, feePayer: 'account', category: '', date: date, note: `تحويل داخلي من ${fromName}${suffix}`, isArchived: false, peerId: fId });
             recalculateAllAccountBalances();
             if(envObj) applyEnvelopeOut(envelopeId, amt, date, `تحويل إلى ${toName}${suffix}`);
         }
@@ -3585,8 +3627,9 @@
             document.getElementById('m-total-cash').innerHTML = `${totalCash.toLocaleString()} <span class="text-xl text-slate-400 font-bold ml-1">ج.م</span>`;
             
             let owedToOthers = 0; let owedToMe = 0;
+            // الناس "التابعين" دول فلوسك انت، مش ديون عليك
             db.persons.forEach(p => {
-                if(p.id !== db.persons[0].id) { 
+                if(!isMinePerson(p)) { 
                     let bal = getPersonStats(p.id).total; 
                     if(bal > 0) owedToOthers += bal; 
                     if(bal < 0) owedToMe += Math.abs(bal); 
@@ -3622,7 +3665,8 @@
                 
                 let ownerBalInfo = null;
                 let cardAction = `openPersonLedger('${p.id}')`;
-                let roleLabel = isOwner ? 'الرئيسي' : 'عميل / جهة';
+                let roleLabel = isOwner ? 'الرئيسي' : (isMinePerson(p) ? '💼 تبعي — فلوسي' : 'عميل / جهة');
+                if(!isOwner && isMinePerson(p)) { balText = bal.toLocaleString() + ' ج.م'; balColor = 'text-brand-700 bg-brand-50 border-brand-200'; iconClass = 'fa-wallet'; }
                 if(isOwner) {
                     ownerBalInfo = getHomeBalanceInfo();
                     balText = ownerBalInfo.value.toLocaleString() + ' ج.م';
@@ -3807,8 +3851,7 @@
             document.getElementById('baseLimit').value = db.visa.limit;
             let cutoffInput = document.getElementById('visaCutoffDay'); if(cutoffInput) cutoffInput.value = db.visa.cutoffDay || 25;
             let stats = calculateVisaDetailed();
-            let vtCatSelect = document.getElementById('vtCategory');
-            if(vtCatSelect) { let catHtml = '<option value="">-- اختياري --</option>'; db.categories.out.forEach(c => catHtml += `<option value="${c}">${c}</option>`); vtCatSelect.innerHTML = catHtml; }
+            mmRenderVtCatChips(); mmRenderVtPaySource();
             document.getElementById('v-availableLimit').innerText = stats.available.toLocaleString(); document.getElementById('v-totalDebt').innerText = stats.total.toLocaleString(); document.getElementById('v-personalDebt').innerText = stats.personal.toLocaleString(); document.getElementById('v-installmentDebt').innerText = stats.installments.toLocaleString();
             let dueHtml = ''; let dueKeys = Object.keys(stats.duesMap).sort();
             if(dueKeys.length === 0) { dueHtml = `<div class="bg-slate-50 text-slate-400 p-5 rounded-3xl text-center font-bold text-sm">لا توجد مديونيات</div>`; } 
@@ -3838,10 +3881,20 @@
             let advDest = isAdvance ? document.getElementById('vtAdvanceDest').value : '';
             if(isAdvance && !advDest) { Swal.fire('خطأ', 'حدد الكاش نزل فين', 'error'); return; }
             let visaTxId = generateId();
-            db.visa.transactions.push({ id: visaTxId, date, desc, amount, type, visaType: 'personal', category: isAdvance ? null : category, isArchived: false, isAdvance: isAdvance });
+            let cat = isAdvance ? null : (category || null);
+            if(cat) { mmEnsureCategory(cat, 'out'); if(mmVtCatManual) mmLearn(desc, cat); }
+            db.visa.transactions.push({ id: visaTxId, date, desc, amount, type, visaType: 'personal', category: cat, isArchived: false, isAdvance: isAdvance, autoCat: !!(cat && !mmVtCatManual) });
             if(isAdvance) applyMoneyIn(advDest, amount, date, `سحب كاش من الفيزا - ${desc}`, undefined, true);
-            document.getElementById('vtDesc').value = ''; document.getElementById('vtAmount').value = ''; document.getElementById('vtCategory').value = '';
+            // سداد من حساب: بيتخصم فعلاً من الحساب، ومتعلّم "سداد الفيزا" عشان ما يتحسبش مصروف تاني
+            let payAcc = type === 'pay' ? document.getElementById('vtPayAcc').value : '';
+            if(payAcc) {
+                let payPer = document.getElementById('vtPayPerson').value || db.persons[0].id;
+                db.transactions.push({ id: generateId(), accountId: payAcc, personId: payPer, type: 'out', amount, fee: 0, feePayer: 'account', category: MM_VISA_PAY_CAT, date, note: `سداد الفيزا${desc ? ' - ' + desc : ''}`, isArchived: false, isVisaPay: true, visaTxId });
+                recalculateAllAccountBalances();
+            }
+            document.getElementById('vtDesc').value = ''; document.getElementById('vtAmount').value = '';
             document.getElementById('vtIsAdvance').checked = false; toggleVisaAdvance();
+            mmResetVtCat();
             saveApp();
             if(isAdvance) Swal.fire('اتسجل ✅', `<b>${amount.toLocaleString()}</b> ج.م اتسحبوا من الفيزا ونزلوا في <b>${getSourceLabel(advDest)}</b>. المبلغ ده دين على الفيزا، ومش محسوب دخل — المصروف هيتسجل لما تصرفه.`, 'success');
             switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
@@ -3893,7 +3946,7 @@
         }
         function archiveVisaTx(id) { Swal.fire({title: 'أرشفة؟', icon: 'question', showCancelButton: true, confirmButtonText: 'نعم' }).then((r) => { if (r.isConfirmed) { let t = db.visa.transactions.find(x => x.id === id); if (t) { t.isArchived = true; saveApp(); } } }); }
         function unarchiveVisaTx(id) { let t = db.visa.transactions.find(x => x.id === id); if (t) { t.isArchived = false; saveApp(); } }
-        function deleteVisaTx(id) { db.visa.transactions = db.visa.transactions.filter(t => t.id !== id); saveApp(); }
+        function deleteVisaTx(id) { db.visa.transactions = db.visa.transactions.filter(t => t.id !== id); let before = db.transactions.length; db.transactions = db.transactions.filter(t => t.visaTxId !== id); if(db.transactions.length !== before) recalculateAllAccountBalances(); saveApp(); }
         function addVisaInst() { let desc = document.getElementById('viDesc').value; let total = parseFloat(document.getElementById('viTotal').value); let months = parseInt(document.getElementById('viMonths').value); let startMonthVal = document.getElementById('viStartMonth').value; if(!desc || !total || !months || !startMonthVal) { Swal.fire('خطأ', 'أكمل بيانات القسط', 'error'); return; } let [startYear, startMonth] = startMonthVal.split('-').map(Number); let monthlyAmount = total / months; let schedules = []; for(let i=0; i < months; i++) { let m = startMonth + i; let y = startYear; while(m > 12) { m -= 12; y++; } schedules.push({ id: generateId(), year: y, month: m, amount: monthlyAmount, isPaid: false }); } db.visa.installments.push({ id: generateId(), desc, total, months, schedules }); document.getElementById('viDesc').value = ''; saveApp(); }
         function toggleVisaInstMonth(instId, scheduleId) { let inst = db.visa.installments.find(i => i.id === instId); if(inst) { let sch = inst.schedules.find(s => s.id === scheduleId); if(sch) { sch.isPaid = !sch.isPaid; saveApp(); } } }
         function deleteVisaInst(id) { db.visa.installments = db.visa.installments.filter(i => i.id !== id); saveApp(); }
@@ -4320,11 +4373,12 @@
                     <button onclick="movePerson('${p.id}','up')" ${idx <= 1 ? 'disabled' : ''} class="w-6 h-5 rounded-md bg-slate-100 text-slate-500 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-up text-[9px]"></i></button>
                     <button onclick="movePerson('${p.id}','down')" ${idx >= db.persons.length - 1 ? 'disabled' : ''} class="w-6 h-5 rounded-md bg-slate-100 text-slate-500 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-down text-[9px]"></i></button>
                 </div>`;
-                phtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><div class="flex items-center gap-3">${moveButtons}<div class="flex flex-col"><span class="text-sm font-extrabold text-slate-800 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></span> ${p.name}</span><label class="text-xs font-bold text-brand-600 flex items-center mt-2 cursor-pointer select-none"><input type="checkbox" class="mr-2 w-4 h-4 accent-brand-600 rounded" ${p.trackCategories ? 'checked' : ''} onchange="togglePersonCategoryTrack('${p.id}', this.checked)">تفعيل التحليل</label></div></div>${isOwner ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">المالك</span>` : `<button onclick="deletePerson('${p.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button>`}</div>`; }); document.getElementById('settings-persons-list').innerHTML = phtml;
+                phtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><div class="flex items-center gap-3">${moveButtons}<div class="flex flex-col"><span class="text-sm font-extrabold text-slate-800 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></span> ${p.name}</span>${isOwner ? `<span class="text-[11px] font-bold text-brand-600 mt-1.5">💼 فلوسي (دايماً)</span>` : `<label class="text-xs font-bold ${isMinePerson(p) ? 'text-brand-600' : 'text-slate-500'} flex items-center mt-2 cursor-pointer select-none"><input type="checkbox" class="mr-2 w-4 h-4 accent-brand-600 rounded" ${isMinePerson(p) ? 'checked' : ''} onchange="togglePersonMine('${p.id}', this.checked)">💼 تبعي — فلوسي</label>`}</div></div>${isOwner ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">المالك</span>` : `<button onclick="deletePerson('${p.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button>`}</div>`; }); document.getElementById('settings-persons-list').innerHTML = phtml;
             document.getElementById('settings-cat-out-list').innerHTML = db.categories.out.map((c, i) => `<div class="flex justify-between items-center bg-white border border-slate-100 p-2.5 rounded-xl text-xs shadow-sm"><span class="text-slate-700 font-bold px-1">${c}</span> <button onclick="deleteCategory('out', ${i})" class="text-rose-400 hover:text-rose-600 bg-rose-50 w-6 h-6 rounded-lg flex items-center justify-center transition-all"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
             document.getElementById('settings-cat-in-list').innerHTML = db.categories.in.map((c, i) => `<div class="flex justify-between items-center bg-white border border-slate-100 p-2.5 rounded-xl text-xs shadow-sm"><span class="text-slate-700 font-bold px-1">${c}</span> <button onclick="deleteCategory('in', ${i})" class="text-emerald-400 hover:text-emerald-600 bg-emerald-50 w-6 h-6 rounded-lg flex items-center justify-center transition-all"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
             let ahtml = ''; db.accounts.forEach(a => { let hasData = db.transactions.filter(t => t.accountId === a.id).length > 0 || a.balance !== 0; ahtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span class="text-sm font-extrabold text-slate-800 cursor-pointer" onclick="openAccountStatement('${a.id}')">${a.icon} ${a.name}</span><button onclick="deleteAccount('${a.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button></div>`; }); document.getElementById('settings-accounts-list').innerHTML = ahtml;
             let chtml = ''; db.cashSafe.locations.forEach(l => { let hasData = db.cashSafe.transactions.filter(t => t.locationId === l.id).length > 0 || l.balance !== 0; chtml += `<div class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span class="text-sm font-extrabold text-slate-800 cursor-pointer" onclick="openCashLocationStatement('${l.id}')">${l.icon} ${l.name}</span><button onclick="deleteCashLocation('${l.id}')" class="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all">${hasData ? '⚠️ حذف' : 'حذف'}</button></div>`; }); document.getElementById('settings-cash-locations-list').innerHTML = chtml;
+            let showCashEl = document.getElementById('settings-show-cash'); if(showCashEl) showCashEl.checked = !!db.showCashSafe;
             renderLockSettings(); renderAppVersion(); renderHomeBalanceSettings(); renderOrderSettings();
         }
 
@@ -4364,6 +4418,7 @@
         }
         // بيرجع الرقم والعنوان الفرعي والحدث اللي هيحصل لما تدوس على كارت الملخص، حسب الاختيار في الإعدادات
         function getHomeBalanceInfo() {
+            return { value: mmTotals().myMoney, sub: 'فلوسي (أنا واللي تبعي)', action: "switchPage('mine')" };
             let m = db.homeBalanceMode || { type: 'total' };
             if(m.type === 'free') {
                 return { value: getFreeBalance(), sub: 'المتاح للصرف (بعد الجيوب)', action: "switchPage('envelopes')" };
@@ -4627,6 +4682,7 @@
             if(currentTab === 'envelopes') renderEnvelopes();
             if(currentTab === 'gam3eya') renderGam3eya();
             if(currentTab === 'home') renderHome();
+            if(currentTab === 'mine') renderMine();
         }
 
         // حماية إضافية للطباعة: بعض متصفحات الموبايل (خصوصاً لما بتحفظ كـ PDF) مبتحترمش @media print كويس،
@@ -4642,8 +4698,8 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '2.6.0';
-        const APP_BUILD = '2026-09-22';
+        const APP_VERSION = '3.0.0';
+        const APP_BUILD = '2026-09-26';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
         let lockFailCount = 0;
@@ -4931,9 +4987,745 @@
         // اختصارات الأيقونة (ضغطة مطوّلة على أيقونة التطبيق) بتفتح التاب على طول
         function applyLaunchShortcut() {
             let target = new URLSearchParams(location.search).get('go');
-            let allowed = ['tx', 'envelopes', 'visa', 'cash', 'gam3eya', 'analysis', 'merged', 'settings'];
+            if(target === 'analysis' || target === 'envelopes' || target === 'income') target = 'mine';
+            let allowed = ['tx', 'mine', 'visa', 'cash', 'gam3eya', 'merged', 'settings'];
             if(target && allowed.includes(target)) switchPage(target);
         }
+
+        /* ==MM-START== */
+        /* =========================================================================
+           v3.0 — "فلوسي"
+           المنطق كله في جملة واحدة:
+             فلوسي = اللي في الحسابات − فلوس الناس اللي مش تبعي
+           الناس "التابعين" (زي جميعه، التزامات عليا) دول فلوسك انت متقسمة، مش فلوس حد تاني.
+           والدخل والمصروف بيتحسبوا على فلوسك بس، ومن غير أي نقل داخلي بين حاجاتك.
+        ========================================================================= */
+
+        const MM_VISA_PAY_CAT = 'سداد الفيزا';
+        const MM_G_OUT_UNCAT = 'مش متصنف';
+        const MM_G_IN_UNCAT = 'إيداعات مش متصنفة';
+        const MM_G_CASHOUT = 'سحب كاش (مش متصنف)';
+        const MM_G_FEES = 'رسوم تحويل وعمولات';
+        let mmState = { month: new Date().toISOString().slice(0, 7), bucket: '', reviewAll: false, queue: [], qi: 0, drill: null };
+        let mmTxCatManual = false, mmTxCatAuto = false, mmTxCatList = [];
+        let mmVtCatManual = false, mmVtCatAuto = false, mmVtCatList = [];
+
+        function mmEl(id) { return document.getElementById(id); }
+        function mmEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        function mmFmt(n) { return (Math.round((Number(n) || 0) * 100) / 100).toLocaleString(); }
+        function mmCompact(n) {
+            let a = Math.abs(n);
+            if(a >= 1000) return (n / 1000).toLocaleString(undefined, { maximumFractionDigits: a >= 100000 ? 0 : 1 }) + 'k';
+            return Math.round(n).toLocaleString();
+        }
+        function mmMonthLabel(mk) { let [y, m] = mk.split('-').map(Number); return arabicMonths[m - 1] + ' ' + y; }
+        function mmAddMonths(mk, n) { let [y, m] = mk.split('-').map(Number); m += n; while(m > 12) { m -= 12; y++; } while(m < 1) { m += 12; y--; } return y + '-' + String(m).padStart(2, '0'); }
+        function mmBounds(mk) { let [y, m] = mk.split('-').map(Number); let last = new Date(y, m, 0).getDate(); return { from: mk + '-01', to: mk + '-' + String(last).padStart(2, '0') }; }
+
+        /* ---------- تطبيع النص العربي (للتصنيف التلقائي) ---------- */
+        function mmNorm(s) {
+            return String(s || '')
+                .replace(/[ً-ٰٟـ]/g, '')
+                .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ة/g, 'ه')
+                .toLowerCase().replace(/[^؀-ۿa-z0-9& ]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        /* ==================== 1) التصنيف التلقائي ====================
+           إنت بتكتب وصف كويس ("بامبرز"، "شحن نت"، "جزمه") — فالتطبيق يقرا الوصف
+           ويختار التصنيف لوحده. ولما تغيّر اختياره بإيدك بيتعلّم ويفتكر المرة الجاية. */
+        const MM_CAT_GROUPS = [
+            { def: 'أكل وشرب', names: ['أكل وشرب', 'اكل وشرب', 'أكل', 'مطاعم'], kw: ['اكل','مطعم','مطاعم','فطار','غدا','غداء','عشا','عشاء','ساندوتش','سندوتش','شاورما','شورما','برجر','بيتزا','فراخ','لحمه','كبده','كشري','فول','طعميه','حواوشي','مشويات','كفته','سمك','جمبري','مكرونه','حلويات','جاتوه','تورته','ايس كريم','ايسكريم','جيلاتي','قهوه','كافيه','كوفي','شاي','نسكافيه','عصير','مشروبات','ستاربكس','ماكدونالدز','كنتاكي','هارديز','دومينوز','ابو طارق','كبابجي','سحلب','ترمس','بسكوت','شيبسي','شوكولاته','طلبات','اوردر اكل','دليفري'] },
+            { def: 'سوبر ماركت', names: ['سوبر ماركت', 'سوبرماركت', 'بقالة'], kw: ['سوبر','ماركت','مركت','بقاله','بقال','خضار','فاكهه','كارفور','سبينس','هايبر','فتح الله','اولاد رجب','خير زمان','زيت','سكر','ارز','دقيق','منظفات','مسحوق','صابون','شامبو','معجون','مناديل','بيض','لبن','جبنه','زبادي','تموين'] },
+            { def: 'مواصلات', names: ['مواصلات'], kw: ['مواصلات','تاكسي','اوبر','uber','يانجو','yango','ديدي','didi','اندرايف','indrive','ميكروباص','اتوبيس','قطر','قطار','مترو','تذكره','بنزين','سولار','كاوتش','ميكانيكي','ورشه','رخصه','مرور','جراج','باركينج','غسيل عربيه','صيانه عربيه','توكتوك','توك توك','سويفل','swvl'] },
+            { def: 'فواتير ومرافق', names: ['فواتير ومرافق', 'فواتير', 'مرافق'], kw: ['فاتوره','فواتير','كهربا','كهرباء','الكهربا','مياه','ميه','غاز','بوتاجاز','انبوبه','ارضي','التليفون الارضي','ايجار','صرف صحي','نظافه','زباله','حراسه','اتحاد ملاك','عداد'] },
+            { def: 'نت ومكالمات', names: ['باقات انترنت ومكالمات', 'نت ومكالمات', 'انترنت', 'نت وموبايل'], kw: ['نت','انترنت','باقه','باقات','شحن','شحن رصيد','كارت شحن','شحن كارت','فودافون','اتصالات','اورانج','وي','we','راوتر','ادسل','واي فاي','wifi','خط','مكالمات','جيجا','ميجا'] },
+            { def: 'صحة ودوا', names: ['صحة ودوا', 'صحه ودوا', 'صحه', 'علاج', 'ادويه'], kw: ['دوا','دواء','ادويه','صيدليه','صيدلي','دكتور','طبيب','عياده','مستشفي','تحليل','تحاليل','معمل','اشعه','اسنان','سنان','عيون','نظاره','عدسات','فيتامين','فيتامينات','مكمل','حقن','حقنه','مرهم','كشف دكتور','علاج','بانادول','كومتركس','انسولين','تامين صحي'] },
+            { def: 'تسوق', names: ['تسوق', 'تسوق ولبس', 'لبس', 'ملابس'], kw: ['هدوم','لبس','ملابس','قميص','بنطلون','تيشرت','تي شيرت','بلوزه','فستان','جيبه','بدله','جاكيت','بالطو','جزمه','شبشب','صندل','كوتشي','شورت','حزام','مشد','شنطه','محفظه','ساعه','استراب','اكسسوار','برفان','عطر','مكياج','حلاق','حلاقه','باربر','كوافير','زارا','التوحيد والنور','اسكرينه','اسكرين','جراب','كفر موبايل','شاحن','سماعه','فلاشه','لابتوب','موبايل جديد','تلفزيون','شاشه','مروحه','تكييف','غساله','تلاجه','ميكروويف','خلاط','مكنسه','امازون','amazon','نون','noon','جوميا','jumia','شي ان','shein'] },
+            { def: 'أطفال', names: ['أطفال', 'اطفال', 'بيبي'], kw: ['بامبر','بمبرز','pampers','حفاضات','حفاض','لبن اطفال','لبن بيبي','بيبي','رضاعه','ببرونه','عربيه اطفال','لعب اطفال','لعبه','مناديل مبلله','بودره اطفال'] },
+            { def: 'بيت ومستلزمات', names: ['بيت ومستلزمات', 'مستلزمات البيت', 'البيت'], kw: ['مستلزمات','اثاث','سرير','مرتبه','دولاب','كنبه','ترابيزه','كرسي','سجاده','ستاره','مفرش','بطانيه','مخده','دهان','نقاش','نجار','سباك','كهربائي','سيراميك','تشطيب','ترميم','سخان','فلتر مياه','لمبه','لمبات','عده'] },
+            { def: 'ترفيه وخروج', names: ['ترفيه وخروج', 'خروجات', 'ترفيه'], kw: ['خروج','خروجه','خروجات','سينما','فيلم','مسرح','حفله','نادي','جيم','تمرين','ماتش','ملعب','بلايستيشن','بلاي ستيشن','رحله','سفر','فسحه','ساحل','مصيف','فندق','شاليه','ملاهي','عزومه'] },
+            { def: 'اشتراكات', names: ['اشتراكات', 'اشتراكات وبرامج', 'برامج'], kw: ['كلود','claude','جميناي','جيميناي','gemini','chatgpt','شات جي بي تي','نتفليكس','netflix','شاهد','spotify','سبوتيفاي','انغامي','يوتيوب بريميوم','youtube','icloud','جوجل ون','google one','canva','كانفا','اشتراك','ابل','apple','جوجل بلاي'] },
+            { def: 'تعليم', names: ['تعليم'], kw: ['مدرسه','جامعه','كليه','كورس','كورسات','دوره','كتاب','كتب','كراسه','دروس','درس','مدرس','سنتر','حضانه','امتحان','مصاريف دراسيه'] },
+            { def: 'أقساط', names: ['أقساط', 'اقساط', 'قسط'], kw: ['قسط','اقساط','قسط هاتف','قسط موبايل','قسط عربيه','تقسيط','فاليو','valu','امان','سهوله','كونتكت','contact'] },
+            { def: 'جمعية', names: ['جمعيه', 'جمعية', 'جمعيات'], kw: ['جمعيه','جمعيات','قسط جمعيه'] },
+            { def: 'هدايا ومناسبات', names: ['هدايا ومناسبات', 'هدايا'], kw: ['هديه','هدايا','فرح','زفاف','كتب كتاب','خطوبه','شبكه','عيد ميلاد','عيديه','سبوع','نقطه','نقوط','عزاء','مناسبه','صدقه','زكاه','تبرع'] },
+            { def: 'رسوم ومصاريف بنك', names: ['رسوم ومصاريف بنك', 'رسوم', 'مصاريف بنكيه'], kw: ['رسوم','رسم','عموله','عمولات','دمغه','ضريبه','مصاريف بنك','رسوم سحب','رسوم تحويل','فوائد','فايده','تجديد كارت','انستا باي','instapay'] },
+            { def: 'شغل وإعلانات', names: ['شغل وإعلانات', 'شغل واعلانات', 'اعلانات', 'شغل'], kw: ['اعلان','اعلانات','ممول','تسويق','بوست ممول','ads','بضاعه','خامات','مندوب','دومين','استضافه','hosting','سيرفر','مطبوعات','بانر'] },
+            { def: 'مديونية', names: ['مديونيه', 'مديونية', 'ديون'], kw: ['مديونيه','سداد دين','سلفه','رد سلفه'] }
+        ];
+        // كلمات مبهمة: مش هنخمّن فيها، هنسيبها لك تصنّفها في ثانية
+        const MM_VAGUE = ['سحب','ايداع','تحويل','داخلي','وارد','صادر','فلوس','مبلغ','كاش','سداد','نقل','حركه','متنوع','مصاريف','مصروف','دفع','استلام','تسليم','باقي','مرتجع','من','الي','الى','في','على','علي','و'];
+
+        let mmKwIdx = null;
+        function mmKwIndex() {
+            if(mmKwIdx) return mmKwIdx;
+            mmKwIdx = [];
+            MM_CAT_GROUPS.forEach((g, gi) => g.kw.forEach(k => { let nk = mmNorm(k); if(nk) mmKwIdx.push({ k: nk, gi: gi }); }));
+            mmKwIdx.sort((a, b) => b.k.length - a.k.length); // الأطول الأول: "لبن اطفال" تكسب "لبن"
+            return mmKwIdx;
+        }
+        function mmIsVague(note) {
+            let words = mmNorm(note).split(' ').filter(Boolean);
+            if(!words.length) return true;
+            let vague = MM_VAGUE.map(mmNorm);
+            return words.every(w => vague.includes(w) || /^\d+$/.test(w) || w.length < 2);
+        }
+        // اسم التصنيف الفعلي في داتاك (لو عندك "تسوق" مش هنعمل "تسوق ولبس" جديد)
+        function mmResolveGroupName(g) {
+            let have = db.categories.out.map(c => mmNorm(c));
+            for(let n of g.names) { let i = have.indexOf(mmNorm(n)); if(i !== -1) return db.categories.out[i]; }
+            return g.def;
+        }
+        function mmEnsureCategory(name, kind) {
+            if(!name) return;
+            let list = db.categories[kind === 'in' ? 'in' : 'out'];
+            if(!list.includes(name)) list.push(name);
+        }
+        // بيرجّع اسم تصنيف أو null. الأولوية: اللي اتعلّمه منك ← القاموس
+        function mmAutoCat(note, kind) {
+            if(kind === 'in') {
+                let n = mmNorm(note);
+                if(/(^| )(راتب|مرتب|المرتب|قبض)( |$)/.test(n)) { let c = db.categories.in.find(x => /راتب|مرتب/.test(x)); return c || null; }
+                return null;
+            }
+            if(!note || mmIsVague(note)) return null;
+            let n = mmNorm(note);
+            if(/^تحويل/.test(n)) return null;
+            let words = n.split(' ').filter(Boolean);
+            let rules = db.catRules || {};
+            for(let w of words) { if(w.length >= 3 && rules[w] && db.categories.out.includes(rules[w])) return rules[w]; }
+            for(let e of mmKwIndex()) {
+                // الكلمات القصيرة (3 حروف أو أقل) لازم تيجي كلمة كاملة، عشان "نت" ما تمسكش في "انتظار"
+                let hit = e.k.length <= 3 ? words.includes(e.k) : n.includes(e.k);
+                if(hit) return mmResolveGroupName(MM_CAT_GROUPS[e.gi]);
+            }
+            return null;
+        }
+        // بيتعلّم: لما تختار تصنيف بإيدك لحركة ليها وصف
+        function mmLearn(note, cat) {
+            if(!note || !cat || cat === MM_VISA_PAY_CAT) return;
+            let vague = MM_VAGUE.map(mmNorm);
+            let words = mmNorm(note).split(' ').filter(w => w.length >= 3 && !vague.includes(w) && !/^\d+$/.test(w));
+            if(!words.length) return;
+            words.sort((a, b) => b.length - a.length);
+            if(!db.catRules) db.catRules = {};
+            db.catRules[words[0]] = cat;
+        }
+        function mmCatIcon(name) {
+            let n = mmNorm(name);
+            if(name === MM_VISA_PAY_CAT) return '💳';
+            if(name === MM_G_FEES) return '🧾';
+            if(name === MM_G_CASHOUT) return '💵';
+            if(name === MM_G_OUT_UNCAT || name === MM_G_IN_UNCAT) return '❔';
+            if(/^(من|لـ) /.test(name)) return '👤';
+            if(/شغل.*اكل|اكل.*شغل/.test(n)) return '🥪';
+            if(/اكل|مطعم|شرب/.test(n)) return '🍔';
+            if(/سوبر|بقال|ماركت/.test(n)) return '🛒';
+            if(/مواصل/.test(n)) return '🚗';
+            if(/فاتور|مرافق/.test(n)) return '💡';
+            if(/نت|انترنت|مكالم|باق/.test(n)) return '📶';
+            if(/صح|دوا|علاج/.test(n)) return '💊';
+            if(/تسوق|لبس|ملابس/.test(n)) return '🛍️';
+            if(/اطفال|بيبي/.test(n)) return '🧸';
+            if(/بيت|مستلزم/.test(n)) return '🏠';
+            if(/ترفيه|خروج/.test(n)) return '🎬';
+            if(/اشتراك|برامج/.test(n)) return '🧠';
+            if(/تعليم/.test(n)) return '📚';
+            if(/قسط|اقساط/.test(n)) return '📆';
+            if(/جمعي/.test(n)) return '🔄';
+            if(/هدي|مناسب/.test(n)) return '🎁';
+            if(/رسوم|بنك/.test(n)) return '🏦';
+            if(/اعلان|شغل/.test(n)) return '📣';
+            if(/مديون|دين/.test(n)) return '🤝';
+            if(/راتب|مرتب/.test(n)) return '💼';
+            if(/ربح|ارباح|مبيع|اوردر/.test(n)) return '📈';
+            if(/اخري|اخرى/.test(n)) return '📦';
+            return '🏷️';
+        }
+
+        /* ==================== 2) الترقية لمرة واحدة ==================== */
+        (function mmUpgrade() {
+            if(!db.migrations) db.migrations = {};
+            const M = db.migrations;
+            db.persons.forEach((p, i) => { if(i === 0) p.mine = true; else if(p.mine === undefined) p.mine = false; });
+            if(!db.catRules) db.catRules = {};
+            if(db.showCashSafe === undefined) db.showCashSafe = db.cashSafe.transactions.length > 0 || db.cashSafe.locations.some(l => Number(l.balance));
+            mmEnsureCategory(MM_VISA_PAY_CAT, 'out');
+            if(!M.v3Order) {
+                const dead = ['analysis', 'income', 'envelopes'];
+                let place = (arr, key, after) => {
+                    arr = (arr || []).filter(k => !dead.includes(k) && k !== key);
+                    if(!arr.length) return arr; // الترتيب الافتراضي هيتكفّل بيها
+                    let i = after ? arr.indexOf(after) : -1;
+                    arr.splice(i + 1, 0, key); return arr;
+                };
+                db.tabOrder = place(db.tabOrder, 'mine', 'home');
+                db.homeCardOrder = place(db.homeCardOrder, 'mine', null);
+                M.v3Order = true;
+            }
+            // التوزيع التلقائي كان بيخصص لجيوب — الجيوب اتشالت
+            (db.incomeDistribution || []).forEach(r => { r.envelopeId = ''; });
+            // "سحب" على الفيزا = سحب كاش (دين) مش مشتريات
+            if(!M.v3VisaAdvance) {
+                db.visa.transactions.forEach(t => { if(t.type === 'buy' && !t.isAdvance && mmNorm(t.desc) === 'سحب') { t.isAdvance = true; t.autoAdvance = true; } });
+                M.v3VisaAdvance = true;
+            }
+            // تصنيف كل الحركات القديمة اللي ليها وصف واضح
+            if(!M.v3AutoCat) {
+                let n = 0;
+                db.transactions.forEach(t => {
+                    if(t.category || t.isTransfer || t.type !== 'out') return;
+                    let c = mmAutoCat(t.note, 'out'); if(c) { mmEnsureCategory(c, 'out'); t.category = c; t.autoCat = true; n++; }
+                });
+                db.visa.transactions.forEach(t => {
+                    if(t.category || t.type !== 'buy' || t.isAdvance) return;
+                    let c = mmAutoCat(t.desc, 'out'); if(c) { mmEnsureCategory(c, 'out'); t.category = c; t.autoCat = true; n++; }
+                });
+                M.v3AutoCat = n; M.v3AutoCatDone = true;
+            }
+            localStorage.setItem('smart_ledger_v6', JSON.stringify(db));
+        })();
+
+        /* ==================== 3) الناس التابعين ==================== */
+        function isMinePerson(p) { return !!p && (p.id === db.persons[0].id || !!p.mine); }
+        function mineIds() { return db.persons.filter(isMinePerson).map(p => p.id); }
+        function togglePersonMine(pid, on) {
+            let p = db.persons.find(x => x.id === pid); if(!p || p.id === db.persons[0].id) return;
+            p.mine = !!on; saveApp();
+            if(currentTab === 'settings') renderSettings();
+            if(currentTab === 'merged') renderMerged();
+        }
+        function mmDismissSetup() { db.mmSetupDone = true; saveApp(); renderMine(); }
+
+        /* ==================== 4) الأرقام ==================== */
+        function mmTotals() {
+            let owner = db.persons[0];
+            let totalAcc = db.accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+            let cash = db.cashSafe.locations.reduce((s, l) => s + (Number(l.balance) || 0), 0);
+            let othersHeld = 0, owedToMe = 0, others = [], buckets = [];
+            db.persons.forEach(p => {
+                if(p.id === owner.id) return;
+                let st = getPersonStats(p.id);
+                let bal = Math.round(st.total * 100) / 100;
+                if(isMinePerson(p)) { buckets.push({ p, bal }); return; }
+                if(bal > 0) othersHeld += bal; else if(bal < 0) owedToMe += -bal;
+                if(bal !== 0) others.push({ p, bal, breakdown: st.breakdown });
+            });
+            let myMoney = totalAcc + cash - othersHeld;
+            let bucketsSum = buckets.reduce((s, b) => s + b.bal, 0);
+            let free = myMoney - bucketsSum;
+            // فلوسي موجودة فين (لكل حساب)
+            let perAcc = db.accounts.map(a => {
+                let held = others.filter(o => o.bal > 0).reduce((s, o) => s + (o.breakdown[a.id] || 0), 0);
+                return { a, mine: Math.round(((Number(a.balance) || 0) - held) * 100) / 100 };
+            });
+            if(cash) perAcc.push({ a: { id: '_cash', name: 'الخزنة الشخصية', icon: '💵' }, mine: cash });
+            let visa = calculateVisaDetailed();
+            return {
+                totalAcc, cash, othersHeld, owedToMe, others, buckets, free,
+                myMoney: Math.round(myMoney * 100) / 100,
+                visaDebt: visa.total,
+                net: Math.round((myMoney + owedToMe - visa.total) * 100) / 100,
+                perAcc
+            };
+        }
+
+        /* تحويل بين حسابين (نفس الشخص) — مش دخل ولا مصروف */
+        function mmIsAccTransfer(t) { return !!t.isTransfer || /^تحويل (صادر إلى|وارد من) /.test((t.note || '').trim()); }
+        /* تحويل بين شخصين: مين الطرف التاني؟ */
+        function mmPeerOf(t) {
+            if(t.peerId) return db.persons.find(p => p.id === t.peerId) || { id: t.peerId, name: 'شخص محذوف', gone: true };
+            let m = (t.note || '').trim().match(/^تحويل داخلي (?:إلى|الى|من) (.+)$/);
+            if(!m) return null;
+            let rest = m[1], best = null;
+            db.persons.forEach(p => { let nm = (p.name || '').trim(); if(nm && rest.startsWith(nm) && (!best || nm.length > best.name.trim().length)) best = p; });
+            if(best) return best;
+            return { id: null, name: rest.split(' - ')[0].replace(/\s*\(من جيب.*$/, '').trim() || 'شخص', gone: true };
+        }
+        function mmUncatGroup(dir, note) {
+            if(dir === 'in') return MM_G_IN_UNCAT;
+            if(/^سحب( كاش)?$/.test(mmNorm(note))) return MM_G_CASHOUT;
+            return MM_G_OUT_UNCAT;
+        }
+        /* كل الفلوس اللي دخلت فلوسي أو خرجت منها في فترة.
+           bucketId فاضي = كل فلوسي. النقل بين حاجاتي، وتحويلات الحسابات، وسداد الفيزا، وسحب الكاش من الفيزا — كلها مش بتتحسب. */
+        function mmFlows(from, to, bucketId) {
+            const ownerId = db.persons[0].id;
+            const S = new Set(bucketId ? [bucketId] : mineIds());
+            const inR = d => inDateRange(d, from, to);
+            let out = [];
+            db.transactions.forEach(t => {
+                if(t.isArchived || !inR(t.date)) return;
+                let fee = Number(t.fee) || 0;
+                if(fee > 0) {
+                    let payer = t.feePayer === 'person' ? t.personId : ownerId;
+                    if(S.has(payer)) out.push({ key: 'fee:' + t.id, src: 'fee', ref: t, dir: 'out', amount: fee, date: t.date, note: 'رسوم: ' + (t.note || ''), personId: payer, accountId: t.accountId, cat: '', group: MM_G_FEES, fixed: true });
+                }
+                if(!S.has(t.personId) || mmIsAccTransfer(t)) return;
+                let peer = mmPeerOf(t);
+                if(peer && peer.id && S.has(peer.id)) return;
+                if(t.type === 'out' && (t.isVisaPay || t.category === MM_VISA_PAY_CAT)) return;
+                let it = { key: 'tx:' + t.id, src: 'tx', ref: t, dir: t.type, amount: Number(t.amount) || 0, date: t.date, note: t.note || '', personId: t.personId, accountId: t.accountId, cat: t.category || '', auto: !!t.autoCat };
+                if(!it.cat && peer) { it.group = (t.type === 'in' ? 'من ' : 'لـ ') + peer.name.trim(); it.people = true; }
+                else it.group = it.cat || mmUncatGroup(t.type, t.note);
+                out.push(it);
+            });
+            if(S.has(ownerId)) {
+                db.visa.transactions.forEach(t => {
+                    if(t.type !== 'buy' || t.isAdvance || !inR(t.date)) return;
+                    out.push({ key: 'visa:' + t.id, src: 'visa', ref: t, dir: 'out', amount: Number(t.amount) || 0, date: t.date, note: t.desc || '', personId: ownerId, cat: t.category || '', auto: !!t.autoCat, group: t.category || mmUncatGroup('out', t.desc) });
+                });
+                db.cashSafe.transactions.forEach(t => {
+                    if(t.isTransfer || !inR(t.date)) return;
+                    out.push({ key: 'cash:' + t.id, src: 'cash', ref: t, dir: t.type, amount: Number(t.amount) || 0, date: t.date, note: t.note || '', personId: ownerId, cat: t.category || '', group: t.category || mmUncatGroup(t.type, t.note) });
+                });
+            }
+            return out;
+        }
+        function mmSummarize(flows) {
+            let inc = 0, exp = 0, byOut = {}, byIn = {};
+            flows.forEach(f => {
+                let box = f.dir === 'in' ? byIn : byOut;
+                if(f.dir === 'in') inc += f.amount; else exp += f.amount;
+                if(!box[f.group]) box[f.group] = { name: f.group, total: 0, items: [], people: !!f.people, fixed: !!f.fixed, uncat: !f.cat && !f.people && !f.fixed };
+                box[f.group].total += f.amount; box[f.group].items.push(f);
+            });
+            let sortArr = o => Object.values(o).sort((a, b) => b.total - a.total);
+            return { inc, exp, net: inc - exp, out: sortArr(byOut), in: sortArr(byIn) };
+        }
+        function mmNeedsReview(f) { return !f.cat && !f.people && !f.fixed; }
+        function mmMonthData(mk, bucket) { let b = mmBounds(mk); let flows = mmFlows(b.from, b.to, bucket); return { flows, sum: mmSummarize(flows) }; }
+
+        /* ==================== 5) تبويب "فلوسي" ==================== */
+        function mmSourceLabel(f) {
+            if(f.src === 'visa') return '💳 الفيزا';
+            if(f.src === 'cash') return '💵 الخزنة';
+            let a = db.accounts.find(x => x.id === f.accountId); let p = db.persons.find(x => x.id === f.personId);
+            let parts = []; if(a) parts.push(a.icon + ' ' + a.name);
+            if(p && p.id !== db.persons[0].id) parts.push(p.name);
+            return parts.join(' • ') || '-';
+        }
+        function mmSetMonth(mk) { let cur = new Date().toISOString().slice(0, 7); if(mk > cur) mk = cur; mmState.month = mk; renderMine(); }
+        function mmSetBucket(b) { mmState.bucket = b; renderMine(); }
+
+        function renderMine() {
+            let body = mmEl('mm-body'); if(!body) return;
+            let T = mmTotals();
+            let owner = db.persons[0];
+            let cur = new Date().toISOString().slice(0, 7);
+            let mk = mmState.month;
+            if(mmState.bucket && !mineIds().includes(mmState.bucket)) mmState.bucket = '';
+            let { flows, sum } = mmMonthData(mk, mmState.bucket);
+            let reviewItems = flows.filter(mmNeedsReview);
+            let reviewAmt = reviewItems.reduce((s, f) => s + f.amount, 0);
+            let html = '';
+
+            let setupHtml = '';
+            /* --- إعداد: مين تبعك؟ --- */
+            let candidates = db.persons.slice(1);
+            if(!db.mmSetupDone && candidates.length) {
+                setupHtml = `<div class="bg-white rounded-[2rem] border-2 border-brand-200 shadow-soft p-5">
+                    <p class="font-black text-slate-800 mb-1">مين من دول فلوسك انت؟ 💼</p>
+                    <p class="text-[11px] font-bold text-slate-500 leading-relaxed mb-3">لو عامل "شخص" عشان تفصل فلوسك (زي جمعية أو التزامات)، علّمه هنا وفلوسه هتتحسب معاك. الباقي فلوس ناس معاك مش ليك.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">${candidates.map(p => `<button onclick="togglePersonMine('${p.id}', ${!isMinePerson(p)}); renderMine()" class="px-3.5 py-2 rounded-2xl text-xs font-black border-2 transition-all ${isMinePerson(p) ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-600'}">${isMinePerson(p) ? '<i class="fa-solid fa-check ml-1"></i>' : ''}${mmEsc(p.name)}</button>`).join('')}</div>
+                    <button onclick="mmDismissSetup()" class="w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white py-3 rounded-2xl font-black text-sm">تمام كده</button>
+                    <p class="text-[10px] font-bold text-slate-400 text-center mt-2">تقدر تغيّر ده بعدين من الإعدادات ← الأشخاص</p>
+                </div>`;
+            }
+
+            /* --- الهيرو --- */
+            html += `<div class="vip-card rounded-[2.5rem] p-6 text-white shadow-2xl">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-bold text-slate-300 mb-1">فلوسي (أنا واللي تبعي)</p>
+                        <h2 class="text-4xl font-black tracking-tight" dir="ltr" style="text-align:right">${mmFmt(T.myMoney)} <span class="text-base text-slate-300 font-bold">ج.م</span></h2>
+                    </div>
+                    <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center"><i class="fa-solid fa-wallet text-xl text-brand-100"></i></div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mt-5">
+                    <div class="bg-white/10 rounded-2xl p-3 border border-white/10"><p class="text-[10px] font-bold text-slate-300">ليا عند ناس</p><p class="text-sm font-black text-emerald-300" dir="ltr">${mmFmt(T.owedToMe)}</p></div>
+                    <div class="bg-white/10 rounded-2xl p-3 border border-white/10"><p class="text-[10px] font-bold text-slate-300">دين الفيزا</p><p class="text-sm font-black text-rose-300" dir="ltr">${mmFmt(T.visaDebt)}</p></div>
+                    <div class="bg-white/10 rounded-2xl p-3 border border-white/10"><p class="text-[10px] font-bold text-slate-300">الصافي</p><p class="text-sm font-black" dir="ltr">${mmFmt(T.net)}</p></div>
+                </div>
+                ${T.othersHeld > 0 ? `<button onclick="switchPage('merged')" class="mt-4 w-full text-right text-[11px] font-bold text-slate-300 bg-black/15 rounded-xl px-3 py-2 border border-white/10">+ معاك كمان <b class="text-white" dir="ltr">${mmFmt(T.othersHeld)}</b> ج.م فلوس ناس (${T.others.filter(o => o.bal > 0).map(o => mmEsc(o.p.name.trim())).join('، ')}) — مش محسوبين من فلوسك <i class="fa-solid fa-chevron-left text-[9px] mr-1"></i></button>` : ''}
+            </div>`;
+
+            /* --- فلوسك فين --- */
+            let bRows = [];
+            bRows.push({ name: (owner.name || 'أنا') + ' — الحر', bal: T.free, color: owner.color });
+            T.buckets.forEach(b => bRows.push({ name: b.p.name, bal: b.bal, color: b.p.color, pid: b.p.id }));
+            let maxB = Math.max(1, ...bRows.map(r => Math.abs(r.bal)));
+            html += `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3">فلوسك مقسومة إزاي</h3>
+                <div class="space-y-2.5">${bRows.map(r => `
+                    <div ${r.pid ? `onclick="openPersonLedger('${r.pid}')" class="cursor-pointer"` : ''}>
+                        <div class="flex justify-between items-center text-xs font-bold mb-1"><span class="text-slate-700 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:${r.color || '#7c3aed'}"></span>${mmEsc(r.name)}</span><span class="font-black ${r.bal < 0 ? 'text-rose-600' : 'text-slate-800'}" dir="ltr">${mmFmt(r.bal)}</span></div>
+                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(0, (r.bal / maxB) * 100)}%;background:#7c3aed"></div></div>
+                    </div>`).join('')}</div>
+                <h4 class="font-extrabold text-slate-700 text-xs mt-5 mb-2">وموجودة فين</h4>
+                <div class="grid grid-cols-2 gap-2">${T.perAcc.filter(x => x.mine !== 0).map(x => `
+                    <div ${x.a.id !== '_cash' ? `onclick="openAccountStatement('${x.a.id}')"` : `onclick="switchPage('cash')"`} class="cursor-pointer bg-slate-50 border border-slate-100 rounded-2xl p-3"><p class="text-[11px] font-bold text-slate-500">${x.a.icon} ${mmEsc(x.a.name)}</p><p class="text-base font-black ${x.mine < 0 ? 'text-rose-600' : 'text-slate-800'}" dir="ltr" style="text-align:right">${mmFmt(x.mine)}</p></div>`).join('') || '<p class="text-xs text-slate-400 font-bold col-span-2">مفيش فلوس ليك في الحسابات دلوقتي.</p>'}</div>
+            </div>`;
+
+            /* --- الشهر: دخل ومصروف --- */
+            let minePeople = db.persons.filter(isMinePerson);
+            html += `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <button onclick="mmSetMonth('${mmAddMonths(mk, -1)}')" class="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600" aria-label="الشهر اللي فات"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="text-center"><p class="font-black text-slate-800">${mmMonthLabel(mk)}</p><p class="text-[10px] font-bold text-slate-400">دخلك ومصاريفك</p></div>
+                    <button onclick="mmSetMonth('${mmAddMonths(mk, 1)}')" ${mk >= cur ? 'disabled' : ''} class="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30" aria-label="الشهر الجاي"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+                ${minePeople.length > 1 ? `<div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1 mb-3">
+                    <button onclick="mmSetBucket('')" class="flex-shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-black border ${!mmState.bucket ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-500'}">كل فلوسي</button>
+                    ${minePeople.map(p => `<button onclick="mmSetBucket('${p.id}')" class="flex-shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-black border ${mmState.bucket === p.id ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-500'}">${mmEsc(p.name)}</button>`).join('')}
+                </div>` : ''}
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-2xl p-3 border" style="background:#eff6ff;border-color:#bfdbfe"><p class="text-[10px] font-bold" style="color:#1d4ed8"><i class="fa-solid fa-arrow-down ml-1"></i>دخل</p><p class="text-base font-black text-slate-800" dir="ltr" style="text-align:right">${mmFmt(sum.inc)}</p></div>
+                    <div class="rounded-2xl p-3 border" style="background:#fff7ed;border-color:#fed7aa"><p class="text-[10px] font-bold" style="color:#c2410c"><i class="fa-solid fa-arrow-up ml-1"></i>مصروف</p><p class="text-base font-black text-slate-800" dir="ltr" style="text-align:right">${mmFmt(sum.exp)}</p></div>
+                    <div class="rounded-2xl p-3 border bg-slate-50 border-slate-200"><p class="text-[10px] font-bold text-slate-500">${sum.net >= 0 ? 'وفّرت' : 'صرفت زيادة'}</p><p class="text-base font-black ${sum.net >= 0 ? 'text-emerald-600' : 'text-rose-600'}" dir="ltr" style="text-align:right">${mmFmt(Math.abs(sum.net))}</p></div>
+                </div>
+                ${reviewItems.length ? `<button onclick="mmOpenReview(false)" class="mt-3 w-full flex items-center gap-3 text-right bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                    <span class="w-9 h-9 rounded-xl bg-amber-400 text-white flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <span class="flex-1"><span class="block text-xs font-black text-amber-800">${reviewItems.length} حركة مش متصنفة (${mmFmt(reviewAmt)} ج.م)</span><span class="block text-[10px] font-bold text-amber-700">صنّفها في دقيقة عشان التحليل يطلع مظبوط</span></span>
+                    <i class="fa-solid fa-chevron-left text-amber-600 text-xs"></i>
+                </button>` : ''}
+                <div class="mt-4">${mmTrendSvg(mk, mmState.bucket)}</div>
+            </div>`;
+
+            /* --- صرفت على إيه --- */
+            let budgets = db.budgets || {};
+            html += `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <div class="flex justify-between items-center mb-3"><h3 class="font-extrabold text-slate-800">صرفت على إيه</h3><button onclick="mmOpenBudgets()" class="text-[11px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-xl"><i class="fa-solid fa-sliders ml-1"></i>الميزانيات</button></div>
+                ${mmGroupsHtml(sum.out, sum.exp, 'out', budgets) || '<p class="text-sm text-slate-400 font-bold text-center py-6">مفيش مصاريف في الشهر ده.</p>'}
+                ${mmBudgetsLeftHtml(sum.out, budgets)}
+            </div>`;
+
+            /* --- الفلوس جت منين --- */
+            html += `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3">الفلوس جت منين</h3>
+                ${mmGroupsHtml(sum.in, sum.inc, 'in', {}) || '<p class="text-sm text-slate-400 font-bold text-center py-6">مفيش دخل في الشهر ده.</p>'}
+            </div>`;
+
+            html += `<p class="text-[10px] font-bold text-slate-400 text-center leading-relaxed px-4">النقل بين حاجاتك، والتحويل بين حساباتك، وسداد الفيزا، وسحب الكاش من الفيزا — مش بيتحسبوا دخل ولا مصروف. مشتريات الفيزا بتتحسب يوم الشراء.</p>`;
+            body.innerHTML = setupHtml + html;
+        }
+
+        function mmGroupsHtml(groups, total, dir, budgets) {
+            if(!groups.length) return '';
+            let max = Math.max(...groups.map(g => g.total));
+            return `<div class="space-y-1">${groups.map((g, i) => {
+                let pct = total > 0 ? Math.round((g.total / total) * 100) : 0;
+                let b = dir === 'out' && !g.people && !g.fixed ? Number(budgets[g.name]) || 0 : 0;
+                let budgetLine = '';
+                if(b > 0) {
+                    let left = b - g.total;
+                    budgetLine = left >= 0
+                        ? `<span class="text-[10px] font-bold text-slate-400">من ميزانية ${mmFmt(b)} • فاضل <b class="text-emerald-600">${mmFmt(left)}</b></span>`
+                        : `<span class="text-[10px] font-bold text-rose-600"><i class="fa-solid fa-triangle-exclamation ml-1"></i>متعدي الميزانية بـ ${mmFmt(-left)}</span>`;
+                }
+                let barColor = g.uncat ? '#f59e0b' : (g.people || g.fixed ? '#94a3b8' : '#7c3aed');
+                return `<button onclick="mmOpenDrill('${dir}', ${i})" class="w-full text-right rounded-2xl p-2.5 hover:bg-slate-50 transition-all ${g.uncat ? 'bg-amber-50/60' : ''}">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-base flex-shrink-0">${mmCatIcon(g.name)}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-baseline gap-2"><span class="text-sm font-extrabold text-slate-700 truncate">${mmEsc(g.name)}</span><span class="text-sm font-black text-slate-800 flex-shrink-0" dir="ltr">${mmFmt(g.total)}</span></div>
+                            <div class="flex items-center gap-2 mt-1"><div class="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(2, (g.total / max) * 100)}%;background:${barColor}"></div></div><span class="text-[10px] font-bold text-slate-400 w-14 text-left">${pct}% • ${g.items.length}</span></div>
+                            ${budgetLine ? `<div class="mt-0.5">${budgetLine}</div>` : ''}
+                        </div>
+                    </div>
+                </button>`;
+            }).join('')}</div>`;
+        }
+        // ميزانيات محطوطة بس لسه ما اتصرفش عليها حاجة الشهر ده
+        function mmBudgetsLeftHtml(groups, budgets) {
+            let used = new Set(groups.map(g => g.name));
+            let rest = Object.keys(budgets).filter(k => Number(budgets[k]) > 0 && !used.has(k));
+            if(!rest.length) return '';
+            return `<div class="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100">${rest.map(k => `<span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">${mmCatIcon(k)} ${mmEsc(k)}: فاضل ${mmFmt(budgets[k])}</span>`).join('')}</div>`;
+        }
+
+        /* رسمة آخر 6 شهور: دخل (أزرق) ومصروف (برتقالي) — ألوان آمنة لعمى الألوان */
+        function mmTrendSvg(selMk, bucket) {
+            let months = []; for(let i = 5; i >= 0; i--) months.push(mmAddMonths(selMk, -i));
+            let data = months.map(mk => { let s = mmMonthData(mk, bucket).sum; return { mk, inc: s.inc, exp: s.exp }; });
+            let max = Math.max(1, ...data.map(d => Math.max(d.inc, d.exp)));
+            let nice = v => { let p = Math.pow(10, Math.floor(Math.log10(v))); let f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
+            let top = nice(max);
+            const W = 320, H = 150, padT = 10, padB = 24, padL = 34, padR = 4;
+            let plotH = H - padT - padB, plotW = W - padL - padR, slot = plotW / 6, bw = Math.min(14, slot / 3);
+            let y = v => padT + plotH - (v / top) * plotH;
+            let bar = (x, v, color, op, label) => {
+                let h = Math.max(0, (v / top) * plotH); if(h < 0.5) return '';
+                let r = Math.min(4, h, bw / 2), yt = padT + plotH - h, yb = padT + plotH;
+                return `<path d="M${x},${yb} L${x},${yt + r} Q${x},${yt} ${x + r},${yt} L${x + bw - r},${yt} Q${x + bw},${yt} ${x + bw},${yt + r} L${x + bw},${yb} Z" fill="${color}" opacity="${op}"><title>${label}</title></path>`;
+            };
+            let g = '';
+            [0, 0.5, 1].forEach(f => { let yy = y(top * f); g += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" stroke="#eef1f6" stroke-width="1"/><text x="${padL - 4}" y="${yy + 3}" text-anchor="end" font-size="8.5" fill="#94a3b8" font-weight="700">${mmCompact(top * f)}</text>`; });
+            data.forEach((d, i) => {
+                // من اليمين للشمال: الأقدم يمين، الأحدث شمال
+                let slotX = padL + plotW - (i + 1) * slot;
+                let cx = slotX + slot / 2;
+                let sel = d.mk === selMk, op = sel ? 1 : 0.4;
+                let [yy, mm] = d.mk.split('-');
+                g += `<g onclick="mmSetMonth('${d.mk}')" style="cursor:pointer"><rect x="${slotX}" y="${padT}" width="${slot}" height="${plotH + padB}" fill="transparent"/>`;
+                g += bar(cx - bw - 1, d.inc, '#2563eb', op, `دخل ${arabicMonths[+mm - 1]}: ${mmFmt(d.inc)}`);
+                g += bar(cx + 1, d.exp, '#ea580c', op, `مصروف ${arabicMonths[+mm - 1]}: ${mmFmt(d.exp)}`);
+                g += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="9" fill="${sel ? '#334155' : '#94a3b8'}" font-weight="${sel ? 800 : 700}">${arabicMonths[+mm - 1].slice(0, 5)}</text></g>`;
+            });
+            return `<div class="flex items-center justify-between mb-1">
+                    <p class="text-[11px] font-black text-slate-500">آخر 6 شهور</p>
+                    <div class="flex gap-3 text-[10px] font-bold text-slate-500"><span class="flex items-center gap-1"><i class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#2563eb"></i>دخل</span><span class="flex items-center gap-1"><i class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#ea580c"></i>مصروف</span></div>
+                </div>
+                <svg viewBox="0 0 ${W} ${H}" class="w-full" role="img" aria-label="الدخل والمصروف لآخر 6 شهور" style="direction:ltr">${g}</svg>
+                <p class="text-[10px] font-bold text-slate-400 text-center">دوس على أي شهر عشان تشوف تفاصيله</p>`;
+        }
+
+        /* ==================== 6) تفاصيل البند + تغيير التصنيف ==================== */
+        function mmModal(html) { mmEl('mm-modal-body').innerHTML = html; if(!mmEl('mmModal').classList.contains('active')) openModal('mmModal'); }
+        function mmOpenDrill(dir, idx) {
+            let { sum } = mmMonthData(mmState.month, mmState.bucket);
+            let g = (dir === 'in' ? sum.in : sum.out)[idx]; if(!g) return;
+            mmState.drill = { dir, name: g.name };
+            mmRenderDrill();
+        }
+        function mmRenderDrill() {
+            let d = mmState.drill; if(!d) return;
+            let { sum } = mmMonthData(mmState.month, mmState.bucket);
+            let g = (d.dir === 'in' ? sum.in : sum.out).find(x => x.name === d.name);
+            if(!g) { closeModal('mmModal'); renderMine(); return; }
+            let items = g.items.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            mmModal(`<div class="flex items-center gap-3 mb-4">
+                    <span class="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl">${mmCatIcon(g.name)}</span>
+                    <div class="flex-1"><h3 class="font-black text-lg text-slate-800">${mmEsc(g.name)}</h3><p class="text-xs font-bold text-slate-400">${mmMonthLabel(mmState.month)} • ${items.length} حركة</p></div>
+                    <p class="text-xl font-black text-slate-800" dir="ltr">${mmFmt(g.total)}</p>
+                </div>
+                <div class="space-y-2">${items.map(f => `
+                    <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-extrabold text-slate-700 truncate">${mmEsc(f.note || '-')}${f.auto ? ' <span class="text-[9px] font-black text-brand-600 bg-brand-50 border border-brand-100 rounded-md px-1.5">✨ تلقائي</span>' : ''}</p>
+                            <p class="text-[10px] font-bold text-slate-400 mt-0.5">${f.date || '-'} • ${mmSourceLabel(f)}</p>
+                        </div>
+                        <span class="text-sm font-black ${f.dir === 'in' ? 'text-emerald-600' : 'text-rose-600'}" dir="ltr">${mmFmt(f.amount)}</span>
+                        ${f.fixed || f.people ? '' : `<button onclick="mmPickFor('${f.key}')" class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-500 flex-shrink-0" title="تغيير التصنيف"><i class="fa-solid fa-tag text-xs"></i></button>`}
+                    </div>`).join('')}</div>
+                ${g.people ? `<p class="text-[11px] font-bold text-slate-400 mt-4 leading-relaxed">دي فلوس اتحولت بينك وبين حد مش من فلوسك، فبتتحسب ${d.dir === 'in' ? 'دخل' : 'مصروف'} عليك. لو الشخص ده فلوسك انت، علّمه "تبعي" من الإعدادات.</p>` : ''}
+                <button onclick="closeModal('mmModal')" class="w-full mt-5 bg-slate-100 text-slate-600 py-3.5 rounded-2xl font-black text-sm">قفل</button>`);
+        }
+
+        /* لوحة اختيار التصنيف لحركة واحدة (من التفاصيل أو من المراجعة) */
+        function mmFindFlow(key) {
+            let [src, id] = key.split(':');
+            let t = src === 'visa' ? db.visa.transactions.find(x => x.id === id) : src === 'cash' ? db.cashSafe.transactions.find(x => x.id === id) : db.transactions.find(x => x.id === id);
+            if(!t) return null;
+            let dir = src === 'visa' ? 'out' : t.type;
+            return { key, src, ref: t, dir, amount: Number(t.amount) || 0, date: t.date, note: (src === 'visa' ? t.desc : t.note) || '', personId: t.personId || db.persons[0].id, accountId: t.accountId, cat: t.category || '' };
+        }
+        function mmPickerHtml(f, ctx) {
+            let kind = f.dir === 'in' ? 'in' : 'out';
+            let cats = db.categories[kind].filter(c => c !== MM_VISA_PAY_CAT);
+            let sug = mmAutoCat(f.note, kind);
+            let specials = [];
+            if(kind === 'in' && f.src !== 'visa') specials.push({ id: 'notIncome', label: '🔁 مش دخل — فلوس متنقلة' });
+            if(f.src === 'visa') specials.push({ id: 'advance', label: '💵 ده سحب كاش مش شراء' });
+            if(f.src === 'tx' && kind === 'out') specials.push({ id: 'visaPay', label: '💳 سداد الفيزا' });
+            mmState.pickCats = cats; mmState.pickSug = sug;
+            return `<div class="bg-slate-50 border border-slate-100 rounded-3xl p-4 mb-4 text-center">
+                    <p class="text-3xl font-black ${kind === 'in' ? 'text-emerald-600' : 'text-rose-600'}" dir="ltr">${kind === 'in' ? '+' : '-'}${mmFmt(f.amount)}</p>
+                    <p class="text-base font-extrabold text-slate-700 mt-1">${mmEsc(f.note || 'من غير بيان')}</p>
+                    <p class="text-[11px] font-bold text-slate-400 mt-1">${f.date || '-'} • ${mmSourceLabel(f)}</p>
+                </div>
+                ${sug ? `<button onclick="mmApplyPick('${f.key}','sug',0,'${ctx}')" class="w-full mb-3 flex items-center justify-center gap-2 bg-brand-50 border-2 border-brand-200 text-brand-700 rounded-2xl py-3 font-black text-sm">✨ ${mmEsc(sug)}؟ <span class="text-[10px] font-bold text-brand-500">(اقتراح)</span></button>` : ''}
+                <p class="text-xs font-black text-slate-500 mb-2">${kind === 'in' ? 'الفلوس دي جت منين؟' : 'اتصرفت على إيه؟'}</p>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    ${cats.map((c, i) => `<button onclick="mmApplyPick('${f.key}','cat',${i},'${ctx}')" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 transition-all ${f.cat === c ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-700'}">${mmCatIcon(c)} ${mmEsc(c)}</button>`).join('')}
+                    <button onclick="mmNewCatFor('${f.key}','${kind}','${ctx}')" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 border-dashed border-slate-300 text-slate-500">+ تصنيف جديد</button>
+                </div>
+                ${specials.length ? `<div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">${specials.map(s => `<button onclick="mmApplyPick('${f.key}','${s.id}',0,'${ctx}')" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 border-amber-200 bg-amber-50 text-amber-800">${s.label}</button>`).join('')}</div>` : ''}`;
+        }
+        function mmPickFor(key) {
+            let f = mmFindFlow(key); if(!f) return;
+            mmModal(`<h3 class="font-black text-lg text-slate-800 mb-4">غيّر التصنيف</h3>${mmPickerHtml(f, 'drill')}
+                <button onclick="mmRenderDrill()" class="w-full mt-4 bg-slate-100 text-slate-600 py-3 rounded-2xl font-black text-sm">رجوع</button>`);
+        }
+        function mmApplyPick(key, kind, idx, ctx, name) {
+            let f = mmFindFlow(key); if(!f) return;
+            let t = f.ref;
+            if(kind === 'sug') { kind = 'cat'; name = mmState.pickSug; }
+            if(kind === 'cat') {
+                let cat = name || (mmState.pickCats || [])[idx]; if(!cat) return;
+                mmEnsureCategory(cat, f.dir);
+                t.category = cat; t.autoCat = false;
+                if(f.src === 'tx' && t.isVisaPay) t.isVisaPay = false;
+                mmLearn(f.note, cat);
+            } else if(kind === 'notIncome') { t.isTransfer = true; }
+            else if(kind === 'advance') { t.isAdvance = true; t.category = null; }
+            else if(kind === 'visaPay') { t.category = MM_VISA_PAY_CAT; t.isVisaPay = true; t.autoCat = false; }
+            saveApp();
+            if(ctx === 'review') { mmState.qi++; mmRenderReview(); } else mmRenderDrill();
+        }
+        function mmNewCatFor(key, kind, ctx) {
+            Swal.fire({ title: 'تصنيف جديد', input: 'text', inputPlaceholder: kind === 'in' ? 'مثلاً: شغل حر' : 'مثلاً: قهوة الصبح', showCancelButton: true, confirmButtonText: 'ضيف واختار', cancelButtonText: 'إلغاء', confirmButtonColor: '#6d28d9' }).then(r => {
+                let v = r && r.isConfirmed ? String(r.value || '').trim() : '';
+                if(!v) { ctx === 'review' ? mmRenderReview() : mmPickFor(key); return; }
+                mmEnsureCategory(v, kind); mmApplyPick(key, 'cat', -1, ctx, v);
+            });
+        }
+
+        /* ==================== 7) المراجعة السريعة ==================== */
+        function mmOpenReview(all) {
+            mmState.reviewAll = !!all;
+            let flows = all ? mmFlows('', '', mmState.bucket) : mmMonthData(mmState.month, mmState.bucket).flows;
+            mmState.queue = flows.filter(mmNeedsReview).sort((a, b) => b.amount - a.amount).map(f => f.key);
+            mmState.qi = 0;
+            mmRenderReview();
+        }
+        function mmRenderReview() {
+            let q = mmState.queue;
+            while(mmState.qi < q.length) { let f = mmFindFlow(q[mmState.qi]); if(f && !f.cat && !(f.src === 'tx' && f.ref.isTransfer) && !(f.src === 'visa' && f.ref.isAdvance)) break; mmState.qi++; }
+            if(mmState.qi >= q.length) {
+                mmModal(`<div class="text-center py-6"><div class="text-5xl mb-3">🎉</div><h3 class="font-black text-xl text-slate-800">كده كله متصنف</h3><p class="text-sm font-bold text-slate-400 mt-2">التحليل دلوقتي بيعكس صرفك الحقيقي.</p>
+                    ${!mmState.reviewAll ? `<button onclick="mmOpenReview(true)" class="mt-5 text-xs font-black text-brand-600 bg-brand-50 px-4 py-2.5 rounded-xl">راجع كل الشهور القديمة كمان</button>` : ''}
+                    <button onclick="closeModal('mmModal'); renderMine()" class="w-full mt-4 bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white py-3.5 rounded-2xl font-black">تمام</button></div>`);
+                return;
+            }
+            let f = mmFindFlow(q[mmState.qi]);
+            let left = q.length - mmState.qi;
+            mmModal(`<div class="flex items-center justify-between mb-4">
+                    <h3 class="font-black text-lg text-slate-800">صنّف بسرعة</h3>
+                    <span class="text-[11px] font-black text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">فاضل ${left}</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-4"><div class="h-full bg-brand-600 rounded-full" style="width:${Math.round((mmState.qi / q.length) * 100)}%"></div></div>
+                ${mmPickerHtml(f, 'review')}
+                <div class="grid grid-cols-2 gap-2 mt-5">
+                    <button onclick="mmState.qi++; mmRenderReview()" class="bg-slate-100 text-slate-600 py-3 rounded-2xl font-black text-sm">تخطي</button>
+                    <button onclick="mmAutoRest()" class="bg-brand-50 text-brand-700 border border-brand-200 py-3 rounded-2xl font-black text-sm">✨ صنّف الباقي تلقائي</button>
+                </div>
+                <button onclick="closeModal('mmModal'); renderMine()" class="w-full mt-2 text-xs font-bold text-slate-400 py-2">كفاية كده دلوقتي</button>`);
+        }
+        function mmAutoRest() {
+            let n = 0;
+            mmState.queue.slice(mmState.qi).forEach(k => {
+                let f = mmFindFlow(k); if(!f || f.cat) return;
+                let c = mmAutoCat(f.note, f.dir); if(!c) return;
+                mmEnsureCategory(c, f.dir); f.ref.category = c; f.ref.autoCat = true; n++;
+            });
+            saveApp();
+            Swal.fire({ title: n ? `اتصنف ${n} ✨` : 'مفيش حاجة واضحة من البيان', text: n ? 'الباقي محتاج نظرة منك.' : 'الباقي بيانه مش كفاية عشان أخمّن — اختاره بإيدك.', icon: n ? 'success' : 'info', timer: 1600, showConfirmButton: false });
+            mmRenderReview();
+        }
+
+        /* ==================== 8) الميزانيات ==================== */
+        function mmOpenBudgets() {
+            let cats = db.categories.out.filter(c => c !== MM_VISA_PAY_CAT);
+            let b = db.budgets || {};
+            mmModal(`<h3 class="font-black text-lg text-slate-800 mb-1">ميزانية كل شهر</h3>
+                <p class="text-[11px] font-bold text-slate-400 mb-4">حط حد أقصى للتصنيفات اللي عاوز تراقبها بس، وسيب الباقي فاضي.</p>
+                <div class="space-y-2">${cats.map((c, i) => `<div class="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl p-2 pr-3">
+                    <span class="flex-1 text-sm font-extrabold text-slate-700">${mmCatIcon(c)} ${mmEsc(c)}</span>
+                    <input type="number" inputmode="decimal" id="mmb-${i}" value="${b[c] || ''}" placeholder="بدون" class="w-28 p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-black text-center">
+                </div>`).join('')}</div>
+                <button onclick="mmSaveBudgets()" class="w-full mt-5 bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white py-3.5 rounded-2xl font-black">حفظ</button>`);
+        }
+        function mmSaveBudgets() {
+            let cats = db.categories.out.filter(c => c !== MM_VISA_PAY_CAT);
+            let nb = {};
+            cats.forEach((c, i) => { let v = parseFloat((mmEl('mmb-' + i) || {}).value); if(v > 0) nb[c] = v; });
+            db.budgets = nb; saveApp(); closeModal('mmModal'); renderMine();
+        }
+
+        /* ==================== 9) تسجيل أسرع: شيبس التصنيف + تصنيف تلقائي ==================== */
+        function mmCatUsage(kind) {
+            let u = {};
+            db.transactions.forEach(t => { if(t.category && t.type === kind) u[t.category] = (u[t.category] || 0) + 1; });
+            if(kind === 'out') db.visa.transactions.forEach(t => { if(t.category && t.type === 'buy') u[t.category] = (u[t.category] || 0) + 1; });
+            return u;
+        }
+        function mmChipsHtml(list, sel, fn, addFn) {
+            return list.map((c, i) => `<button type="button" onclick="${fn}(${i})" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 transition-all ${c === sel ? 'bg-brand-600 border-brand-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-700 hover:border-brand-200'}">${mmCatIcon(c)} ${mmEsc(c)}</button>`).join('')
+                + `<button type="button" onclick="${addFn}()" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 border-dashed border-slate-300 text-slate-500">+ جديد</button>`;
+        }
+        function mmBuildCatList(kind, sel) {
+            let list = db.categories[kind].slice();
+            if(sel && !list.includes(sel)) list.push(sel);
+            let u = mmCatUsage(kind), order = db.categories[kind];
+            // الأكتر استخدام الأول، و"سداد الفيزا" دايماً في الآخر
+            list.sort((a, b) => (a === MM_VISA_PAY_CAT) - (b === MM_VISA_PAY_CAT) || (u[b] || 0) - (u[a] || 0) || order.indexOf(a) - order.indexOf(b));
+            return list;
+        }
+        // --- صفحة التسجيل ---
+        function mmRenderTxCatChips(sel) {
+            let select = mmEl('tx-category'), box = mmEl('tx-cat-chips'); if(!select || !box) return;
+            let kind = currentTxType === 'in' ? 'in' : 'out';
+            if(sel === undefined) sel = select.value;
+            mmTxCatList = mmBuildCatList(kind, sel);
+            select.innerHTML = '<option value=""></option>' + mmTxCatList.map(c => `<option value="${mmEsc(c)}">${mmEsc(c)}</option>`).join('');
+            select.value = sel || '';
+            box.innerHTML = mmChipsHtml(mmTxCatList, sel, 'mmPickTxCat', 'mmAddTxCat');
+            let hint = mmEl('tx-cat-hint');
+            if(hint) hint.innerHTML = (sel && mmTxCatAuto && !mmTxCatManual) ? '<span class="text-brand-600">✨ اتصنفت لوحدها من البيان</span>' : (sel ? '' : '<span class="text-slate-400">اختياري — بس بيخلّي التحليل مظبوط</span>');
+        }
+        function mmPickTxCat(i) {
+            let c = mmTxCatList[i]; let select = mmEl('tx-category');
+            let same = select.value === c;
+            mmTxCatManual = true; mmTxCatAuto = false;
+            mmRenderTxCatChips(same ? '' : c);
+        }
+        function mmAddTxCat() {
+            let kind = currentTxType === 'in' ? 'in' : 'out';
+            Swal.fire({ title: 'تصنيف جديد', input: 'text', inputPlaceholder: kind === 'in' ? 'مثلاً: شغل حر' : 'مثلاً: قهوة الصبح', showCancelButton: true, confirmButtonText: 'ضيف واختار', cancelButtonText: 'إلغاء', confirmButtonColor: '#6d28d9' }).then(r => {
+                let v = r && r.isConfirmed ? String(r.value || '').trim() : ''; if(!v) return;
+                mmEnsureCategory(v, kind); mmTxCatManual = true; mmTxCatAuto = false; saveApp(); mmRenderTxCatChips(v);
+            });
+        }
+        function mmOnTxNote() {
+            if(mmTxCatManual) return;
+            let container = mmEl('tx-category-container'); if(!container || container.classList.contains('hidden')) return;
+            let kind = currentTxType === 'in' ? 'in' : 'out';
+            let s = mmAutoCat(mmEl('tx-note').value, kind);
+            if(s) { mmTxCatAuto = true; mmRenderTxCatChips(s); }
+            else if(mmTxCatAuto) { mmTxCatAuto = false; mmRenderTxCatChips(''); }
+        }
+        function mmResetTxCat() { mmTxCatManual = false; mmTxCatAuto = false; }
+        // --- فورم الفيزا ---
+        function mmRenderVtCatChips(sel) {
+            let select = mmEl('vtCategory'), box = mmEl('vt-cat-chips'); if(!select || !box) return;
+            if(sel === undefined) sel = select.value;
+            mmVtCatList = mmBuildCatList('out', sel).filter(c => c !== MM_VISA_PAY_CAT);
+            select.innerHTML = '<option value=""></option>' + mmVtCatList.map(c => `<option value="${mmEsc(c)}">${mmEsc(c)}</option>`).join('');
+            select.value = sel || '';
+            box.innerHTML = mmChipsHtml(mmVtCatList, sel, 'mmPickVtCat', 'mmAddVtCat');
+            let hint = mmEl('vt-cat-hint');
+            if(hint) hint.innerHTML = (sel && mmVtCatAuto && !mmVtCatManual) ? '<span class="text-brand-600">✨ اتصنفت لوحدها من البيان</span>' : '';
+        }
+        function mmPickVtCat(i) { let c = mmVtCatList[i]; let same = mmEl('vtCategory').value === c; mmVtCatManual = true; mmVtCatAuto = false; mmRenderVtCatChips(same ? '' : c); }
+        function mmAddVtCat() {
+            Swal.fire({ title: 'تصنيف جديد', input: 'text', showCancelButton: true, confirmButtonText: 'ضيف واختار', cancelButtonText: 'إلغاء', confirmButtonColor: '#6d28d9' }).then(r => {
+                let v = r && r.isConfirmed ? String(r.value || '').trim() : ''; if(!v) return;
+                mmEnsureCategory(v, 'out'); mmVtCatManual = true; mmVtCatAuto = false; saveApp(); mmRenderVtCatChips(v);
+            });
+        }
+        function mmOnVtDesc() {
+            let desc = mmEl('vtDesc').value;
+            // "سحب" على الفيزا = سحب كاش
+            let adv = mmEl('vtIsAdvance');
+            if(adv && mmNorm(desc) === 'سحب' && !adv.checked) { adv.checked = true; toggleVisaAdvance(); }
+            if(mmVtCatManual) return;
+            let s = mmAutoCat(desc, 'out');
+            if(s) { mmVtCatAuto = true; mmRenderVtCatChips(s); }
+            else if(mmVtCatAuto) { mmVtCatAuto = false; mmRenderVtCatChips(''); }
+        }
+        function mmResetVtCat() { mmVtCatManual = false; mmVtCatAuto = false; mmRenderVtCatChips(''); }
+        // مصدر سداد الفيزا (اختياري): بيسجّل الخصم من الحساب مع التصنيف الصح، فرصيد البنك يفضل مظبوط والمصروف ما يتحسبش مرتين
+        function mmRenderVtPaySource() {
+            let accSel = mmEl('vtPayAcc'), perSel = mmEl('vtPayPerson'); if(!accSel || !perSel) return;
+            let keepA = accSel.value, keepP = perSel.value;
+            accSel.innerHTML = '<option value="">مش هسجّلها من حساب</option>' + db.accounts.map(a => `<option value="${a.id}">${a.icon} ${mmEsc(a.name)}</option>`).join('');
+            perSel.innerHTML = db.persons.filter(isMinePerson).map(p => `<option value="${p.id}">${mmEsc(p.name)}</option>`).join('');
+            if(keepA) accSel.value = keepA; if(keepP) perSel.value = keepP;
+            mmToggleVtPayPerson();
+        }
+        function mmToggleVtPayPerson() { let w = mmEl('vtPayPersonWrap'); if(w) w.classList.toggle('hidden', !mmEl('vtPayAcc').value); }
+        /* ==MM-END== */
 
         registerServiceWorker();
 
@@ -5170,11 +5962,14 @@
 
         // ---------- إجابات الاستعلامات ----------
         function buildAssistantTotalAnswer() {
-            let totalCash = db.accounts.reduce((s,a) => s + a.balance, 0);
-            let totalCashSafe = db.cashSafe.locations.reduce((s,l) => s + l.balance, 0);
-            let owedToOthers = 0, owedToMe = 0;
-            db.persons.forEach(p => { if(p.id !== db.persons[0].id) { let bal = getPersonStats(p.id).total; if(bal>0) owedToOthers += bal; if(bal<0) owedToMe += Math.abs(bal); } });
-            return `💼 رصيدك في الخزائن/البنوك: <b>${totalCash.toLocaleString()} ج.م</b><br>💵 الكاش اللي معاك: <b>${totalCashSafe.toLocaleString()} ج.م</b><br>📤 ديون عليك للآخرين: <b>${owedToOthers.toLocaleString()} ج.م</b><br>📥 فلوس ليك عند الناس: <b>${owedToMe.toLocaleString()} ج.م</b>`;
+            let T = mmTotals();
+            let lines = [`💼 فلوسي (أنا واللي تبعي): <b>${mmFmt(T.myMoney)} ج.م</b>`];
+            T.buckets.forEach(b => lines.push(`&nbsp;&nbsp;• ${b.p.name}: <b>${mmFmt(b.bal)}</b>`));
+            if(T.othersHeld) lines.push(`📦 فلوس ناس معايا (مش ليا): <b>${mmFmt(T.othersHeld)} ج.م</b>`);
+            if(T.owedToMe) lines.push(`📥 ليا عند ناس: <b>${mmFmt(T.owedToMe)} ج.م</b>`);
+            if(T.visaDebt) lines.push(`💳 دين الفيزا: <b>${mmFmt(T.visaDebt)} ج.م</b>`);
+            lines.push(`🧮 الصافي: <b>${mmFmt(T.net)} ج.م</b>`);
+            return lines.join('<br>');
         }
         function buildAssistantPersonBalanceAnswer(person) {
             let stats = getPersonStats(person.id);
@@ -5184,15 +5979,12 @@
         function buildAssistantAccountBalanceAnswer(account) { return `رصيد <b>${account.name}</b> حالياً: <b>${account.balance.toLocaleString()} ج.م</b>`; }
         function buildAssistantCashBalanceAnswer(loc) { return `الكاش الموجود في <b>${loc.name}</b>: <b>${loc.balance.toLocaleString()} ج.م</b>`; }
         function buildAssistantAnalysisAnswer() {
-            let now = new Date(); let month = now.getMonth(); let year = now.getFullYear();
-            let txs = db.transactions.filter(t => { let d = new Date(t.date); return !t.isArchived && t.category && d.getMonth()===month && d.getFullYear()===year; });
-            let totalIn = 0, totalOut = 0, breakdown = {};
-            txs.forEach(t => { if(t.type === 'in') totalIn += t.amount; else { totalOut += t.amount; breakdown[t.category] = (breakdown[t.category]||0) + t.amount; } });
-            if(totalIn === 0 && totalOut === 0) return `مفيش حركات مسجلة عليها تصنيف للشهر ده لسه، سجل شوية عمليات وهرجعلك بتحليل مظبوط 📊`;
-            let breakdownArr = Object.keys(breakdown).map(k => ({cat:k, val:breakdown[k]})).sort((a,b)=>b.val-a.val);
-            let topCat = breakdownArr[0];
-            let lines = breakdownArr.map(item => `• ${item.cat}: <b>${item.val.toLocaleString()}</b> ج.م (${totalOut>0?((item.val/totalOut)*100).toFixed(0):0}%)`).join('<br>');
-            return `📊 تحليل مصاريف شهر ${arabicMonths[month]}:<br><br>دخل: <b class="text-emerald-600">${totalIn.toLocaleString()}</b> ج.م | مصاريف: <b class="text-rose-600">${totalOut.toLocaleString()}</b> ج.م<br><br>${lines}<br><br>${topCat ? `أكتر بند بتصرف عليه هو <b>${topCat.cat}</b>.` : ''} تقدر تشوف التفاصيل كاملة في تبويب «التحليل».`;
+            let mk = new Date().toISOString().slice(0, 7);
+            let { flows, sum } = mmMonthData(mk, '');
+            if(!sum.inc && !sum.exp) return `مفيش دخل ولا مصاريف على فلوسك في ${mmMonthLabel(mk)} لسه 📊`;
+            let top = sum.out.slice(0, 5).map(g => `• ${g.name}: <b>${mmFmt(g.total)}</b> ج.م (${sum.exp ? Math.round(g.total / sum.exp * 100) : 0}%)`).join('<br>');
+            let unc = flows.filter(mmNeedsReview);
+            return `📊 ${mmMonthLabel(mk)}:<br><br>دخل: <b class="text-blue-600">${mmFmt(sum.inc)}</b> | مصروف: <b class="text-orange-600">${mmFmt(sum.exp)}</b> | ${sum.net >= 0 ? 'وفّرت' : 'صرفت زيادة'} <b>${mmFmt(Math.abs(sum.net))}</b><br><br>${top}${unc.length ? `<br><br>⚠️ في ${unc.length} حركة مش متصنفة — صنّفها من تبويب «فلوسي» عشان الأرقام تبقى أدق.` : ''}<br><br>التفاصيل كاملة في تبويب «فلوسي».`;
         }
 
         // ---------- كروت المعاينة والتأكيد ----------
