@@ -522,6 +522,7 @@
         <div id="page-visa" class="page space-y-6">
             <div class="flex bg-white rounded-2xl border border-slate-100 p-1 hide-scrollbar overflow-x-auto mb-4">
                 <button class="flex-1 min-w-[70px] py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white sub-tab-btn shadow-glow" onclick="switchVisaSub('v-dashboard', this)">الملخص</button>
+                <button class="flex-1 min-w-[70px] py-2.5 px-3 rounded-xl text-xs font-bold text-slate-500 sub-tab-btn" onclick="switchVisaSub('v-track', this)">المتابعة</button>
                 <button class="flex-1 min-w-[70px] py-2.5 px-3 rounded-xl text-xs font-bold text-slate-500 sub-tab-btn" onclick="switchVisaSub('v-transactions', this)">تسجيل</button>
                 <button class="flex-1 min-w-[70px] py-2.5 px-3 rounded-xl text-xs font-bold text-slate-500 sub-tab-btn" onclick="switchVisaSub('v-installments', this)">أقساط</button>
                 <button class="flex-1 min-w-[70px] py-2.5 px-3 rounded-xl text-xs font-bold text-slate-500 sub-tab-btn" onclick="switchVisaSub('v-statement', this)">البيان</button>
@@ -548,6 +549,8 @@
                     <div id="v-dueDatesContainer" class="space-y-3"></div>
                 </div>
             </div>
+
+            <div id="v-track" class="sub-page"><div id="v-track-body" class="space-y-4"></div></div>
 
             <div id="v-transactions" class="sub-page space-y-4">
                 <div class="bg-white p-6 rounded-3xl border border-slate-100">
@@ -3851,7 +3854,7 @@
             document.getElementById('baseLimit').value = db.visa.limit;
             let cutoffInput = document.getElementById('visaCutoffDay'); if(cutoffInput) cutoffInput.value = db.visa.cutoffDay || 25;
             let stats = calculateVisaDetailed();
-            mmRenderVtCatChips(); mmRenderVtPaySource();
+            mmRenderVtCatChips(); mmRenderVtPaySource(); renderVisaTrack();
             document.getElementById('v-availableLimit').innerText = stats.available.toLocaleString(); document.getElementById('v-totalDebt').innerText = stats.total.toLocaleString(); document.getElementById('v-personalDebt').innerText = stats.personal.toLocaleString(); document.getElementById('v-installmentDebt').innerText = stats.installments.toLocaleString();
             let dueHtml = ''; let dueKeys = Object.keys(stats.duesMap).sort();
             if(dueKeys.length === 0) { dueHtml = `<div class="bg-slate-50 text-slate-400 p-5 rounded-3xl text-center font-bold text-sm">لا توجد مديونيات</div>`; } 
@@ -3897,7 +3900,7 @@
             mmResetVtCat();
             saveApp();
             if(isAdvance) Swal.fire('اتسجل ✅', `<b>${amount.toLocaleString()}</b> ج.م اتسحبوا من الفيزا ونزلوا في <b>${getSourceLabel(advDest)}</b>. المبلغ ده دين على الفيزا، ومش محسوب دخل — المصروف هيتسجل لما تصرفه.`, 'success');
-            switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+            mmGoVisaSub('v-statement');
         }
         // ---------- تعديل حركة فيزا ----------
         function openVisaTxEdit(id) {
@@ -3932,7 +3935,7 @@
                 t.category = t.isAdvance ? null : (document.getElementById('vedit-category').value || '');
             } else { t.isAdvance = false; t.category = null; }
             closeModal('visaTxEditModal'); saveApp();
-            switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+            mmGoVisaSub('v-statement');
             Swal.fire('اتعدلت ✅', 'حركة الفيزا اتحدّثت.', 'success');
         }
         // تعليم حركة فيزا قديمة إنها سحب كاش (دين) مش مشتريات، عشان متتحسبش مصروف في التحليل
@@ -3940,7 +3943,7 @@
             let t = db.visa.transactions.find(x => x.id === id); if(!t || t.type !== 'buy') return;
             t.isAdvance = !t.isAdvance;
             saveApp();
-            switchVisaSub('v-statement', document.querySelectorAll('#page-visa .sub-tab-btn')[3]);
+            mmGoVisaSub('v-statement');
             Swal.fire(t.isAdvance ? 'اتعلّمت كسحب كاش ✅' : 'رجعت مشتريات ✅',
                 t.isAdvance ? 'المبلغ ده بقى محسوب دين على الفيزا مش مصروف، والمصروف هيتسجل لما تصرف الكاش نفسه.' : 'المبلغ ده رجع يتحسب مصروف عادي في التحليل.', 'success');
         }
@@ -4698,8 +4701,8 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '3.0.0';
-        const APP_BUILD = '2026-09-26';
+        const APP_VERSION = '3.1.0';
+        const APP_BUILD = '2026-09-27';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
         let lockFailCount = 0;
@@ -5006,7 +5009,7 @@
         const MM_G_IN_UNCAT = 'إيداعات مش متصنفة';
         const MM_G_CASHOUT = 'سحب كاش (مش متصنف)';
         const MM_G_FEES = 'رسوم تحويل وعمولات';
-        let mmState = { month: new Date().toISOString().slice(0, 7), bucket: '', reviewAll: false, queue: [], qi: 0, drill: null };
+        let mmState = { month: new Date().toISOString().slice(0, 7), bucket: '', reviewAll: false, queue: [], qi: 0, drill: null, scope: 'money', vMonth: new Date().toISOString().slice(0, 7) };
         let mmTxCatManual = false, mmTxCatAuto = false, mmTxCatList = [];
         let mmVtCatManual = false, mmVtCatAuto = false, mmVtCatList = [];
 
@@ -5264,17 +5267,13 @@
                 if(!S.has(t.personId) || mmIsAccTransfer(t)) return;
                 let peer = mmPeerOf(t);
                 if(peer && peer.id && S.has(peer.id)) return;
-                if(t.type === 'out' && (t.isVisaPay || t.category === MM_VISA_PAY_CAT)) return;
                 let it = { key: 'tx:' + t.id, src: 'tx', ref: t, dir: t.type, amount: Number(t.amount) || 0, date: t.date, note: t.note || '', personId: t.personId, accountId: t.accountId, cat: t.category || '', auto: !!t.autoCat };
                 if(!it.cat && peer) { it.group = (t.type === 'in' ? 'من ' : 'لـ ') + peer.name.trim(); it.people = true; }
                 else it.group = it.cat || mmUncatGroup(t.type, t.note);
                 out.push(it);
             });
             if(S.has(ownerId)) {
-                db.visa.transactions.forEach(t => {
-                    if(t.type !== 'buy' || t.isAdvance || !inR(t.date)) return;
-                    out.push({ key: 'visa:' + t.id, src: 'visa', ref: t, dir: 'out', amount: Number(t.amount) || 0, date: t.date, note: t.desc || '', personId: ownerId, cat: t.category || '', auto: !!t.autoCat, group: t.category || mmUncatGroup('out', t.desc) });
-                });
+                // مشتريات الفيزا ليها تابها لوحدها — مش بتتخلط بفلوس حساباتك
                 db.cashSafe.transactions.forEach(t => {
                     if(t.isTransfer || !inR(t.date)) return;
                     out.push({ key: 'cash:' + t.id, src: 'cash', ref: t, dir: t.type, amount: Number(t.amount) || 0, date: t.date, note: t.note || '', personId: ownerId, cat: t.category || '', group: t.category || mmUncatGroup(t.type, t.note) });
@@ -5406,12 +5405,13 @@
                 ${mmGroupsHtml(sum.in, sum.inc, 'in', {}) || '<p class="text-sm text-slate-400 font-bold text-center py-6">مفيش دخل في الشهر ده.</p>'}
             </div>`;
 
-            html += `<p class="text-[10px] font-bold text-slate-400 text-center leading-relaxed px-4">النقل بين حاجاتك، والتحويل بين حساباتك، وسداد الفيزا، وسحب الكاش من الفيزا — مش بيتحسبوا دخل ولا مصروف. مشتريات الفيزا بتتحسب يوم الشراء.</p>`;
+            html += `<p class="text-[10px] font-bold text-slate-400 text-center leading-relaxed px-4">دي فلوسك اللي في حساباتك: النقل بين حاجاتك والتحويل بين حساباتك مش بيتحسبوا دخل ولا مصروف. مشتريات الفيزا ليها تابة لوحدها في <b>الفيزا ← المتابعة</b>.</p>`;
             body.innerHTML = setupHtml + html;
         }
 
-        function mmGroupsHtml(groups, total, dir, budgets) {
+        function mmGroupsHtml(groups, total, dir, budgets, scope) {
             if(!groups.length) return '';
+            scope = scope || 'money';
             let max = Math.max(...groups.map(g => g.total));
             return `<div class="space-y-1">${groups.map((g, i) => {
                 let pct = total > 0 ? Math.round((g.total / total) * 100) : 0;
@@ -5424,7 +5424,7 @@
                         : `<span class="text-[10px] font-bold text-rose-600"><i class="fa-solid fa-triangle-exclamation ml-1"></i>متعدي الميزانية بـ ${mmFmt(-left)}</span>`;
                 }
                 let barColor = g.uncat ? '#f59e0b' : (g.people || g.fixed ? '#94a3b8' : '#7c3aed');
-                return `<button onclick="mmOpenDrill('${dir}', ${i})" class="w-full text-right rounded-2xl p-2.5 hover:bg-slate-50 transition-all ${g.uncat ? 'bg-amber-50/60' : ''}">
+                return `<button onclick="mmOpenDrill('${dir}', ${i}, '${scope}')" class="w-full text-right rounded-2xl p-2.5 hover:bg-slate-50 transition-all ${g.uncat ? 'bg-amber-50/60' : ''}">
                     <div class="flex items-center gap-3">
                         <span class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-base flex-shrink-0">${mmCatIcon(g.name)}</span>
                         <div class="flex-1 min-w-0">
@@ -5480,23 +5480,119 @@
                 <p class="text-[10px] font-bold text-slate-400 text-center">دوس على أي شهر عشان تشوف تفاصيله</p>`;
         }
 
+        /* ==================== 5ب) متابعة فيزا المشتريات (عالم لوحده) ====================
+           التابة دي ملهاش علاقة بفلوسك ولا بحساباتك — مشترياتك بالفيزا بس. */
+        function mmVisaFlows(from, to) {
+            let out = [];
+            db.visa.transactions.forEach(t => {
+                if(t.type !== 'buy' || t.isAdvance || !inDateRange(t.date, from, to)) return;
+                out.push({ key: 'visa:' + t.id, src: 'visa', ref: t, dir: 'out', amount: Number(t.amount) || 0, date: t.date, note: t.desc || '', cat: t.category || '', auto: !!t.autoCat, archived: !!t.isArchived, group: t.category || MM_G_OUT_UNCAT });
+            });
+            return out;
+        }
+        function mmVisaMonthData(mk) { let b = mmBounds(mk); let flows = mmVisaFlows(b.from, b.to); return { flows, sum: mmSummarize(flows) }; }
+        function mmSetVisaMonth(mk) { let cur = new Date().toISOString().slice(0, 7); if(mk > cur) mk = cur; mmState.vMonth = mk; renderVisaTrack(); }
+        function mmGoVisaSub(id) {
+            let btn = Array.from(document.querySelectorAll('#page-visa .sub-tab-btn')).find(b => (b.getAttribute('onclick') || '').includes("'" + id + "'"));
+            if(btn) switchVisaSub(id, btn);
+        }
+
+        function renderVisaTrack() {
+            let body = mmEl('v-track-body'); if(!body) return;
+            let mk = mmState.vMonth, cur = new Date().toISOString().slice(0, 7);
+            let { flows, sum } = mmVisaMonthData(mk);
+            let review = flows.filter(mmNeedsReview);
+            let reviewAmt = review.reduce((s, f) => s + f.amount, 0);
+            let all = mmVisaFlows('', '');
+            let allUncat = all.filter(mmNeedsReview).length;
+            let top = flows.slice().sort((a, b) => b.amount - a.amount).slice(0, 3);
+            let pay = db.visa.transactions.filter(t => t.type === 'pay' && inDateRange(t.date, mmBounds(mk).from, mmBounds(mk).to)).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+            let html = `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <button onclick="mmSetVisaMonth('${mmAddMonths(mk, -1)}')" class="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600" aria-label="الشهر اللي فات"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="text-center"><p class="font-black text-slate-800">${mmMonthLabel(mk)}</p><p class="text-[10px] font-bold text-slate-400">مشترياتك بالفيزا بس</p></div>
+                    <button onclick="mmSetVisaMonth('${mmAddMonths(mk, 1)}')" ${mk >= cur ? 'disabled' : ''} class="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30" aria-label="الشهر الجاي"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-2xl p-3 border" style="background:#fff7ed;border-color:#fed7aa"><p class="text-[10px] font-bold" style="color:#c2410c">مشتريات</p><p class="text-base font-black text-slate-800" dir="ltr" style="text-align:right">${mmFmt(sum.exp)}</p></div>
+                    <div class="rounded-2xl p-3 border bg-emerald-50 border-emerald-100"><p class="text-[10px] font-bold text-emerald-700">سداد</p><p class="text-base font-black text-slate-800" dir="ltr" style="text-align:right">${mmFmt(pay)}</p></div>
+                    <div class="rounded-2xl p-3 border bg-slate-50 border-slate-200"><p class="text-[10px] font-bold text-slate-500">عدد العمليات</p><p class="text-base font-black text-slate-800" dir="ltr" style="text-align:right">${flows.length}</p></div>
+                </div>
+                ${review.length ? `<button onclick="mmOpenReview(false, 'visa')" class="mt-3 w-full flex items-center gap-3 text-right bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                    <span class="w-9 h-9 rounded-xl bg-amber-400 text-white flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <span class="flex-1"><span class="block text-xs font-black text-amber-800">${review.length} عملية مش متصنفة (${mmFmt(reviewAmt)} ج.م)</span><span class="block text-[10px] font-bold text-amber-700">صنّفها عشان تعرف بتصرف على إيه بالفيزا</span></span>
+                    <i class="fa-solid fa-chevron-left text-amber-600 text-xs"></i>
+                </button>` : (allUncat ? `<button onclick="mmOpenReview(true, 'visa')" class="mt-3 w-full text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl py-2.5">في ${allUncat} عملية مش متصنفة في شهور تانية — صنّفها</button>` : '')}
+                <div class="mt-4">${mmVisaTrendSvg(mk)}</div>
+            </div>
+
+            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3">اشتريت إيه بالفيزا</h3>
+                ${mmGroupsHtml(sum.out, sum.exp, 'out', {}, 'visa') || '<p class="text-sm text-slate-400 font-bold text-center py-6">مفيش مشتريات بالفيزا في الشهر ده.</p>'}
+            </div>
+
+            ${top.length ? `<div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-800 mb-3">أكبر عمليات الشهر</h3>
+                <div class="space-y-2">${top.map(f => `<div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+                    <span class="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-base flex-shrink-0">${mmCatIcon(f.cat || MM_G_OUT_UNCAT)}</span>
+                    <div class="flex-1 min-w-0"><p class="text-sm font-extrabold text-slate-700 truncate">${mmEsc(f.note || '-')}</p><p class="text-[10px] font-bold text-slate-400 mt-0.5">${f.date} • ${mmEsc(f.cat || 'مش متصنف')}</p></div>
+                    <span class="text-sm font-black text-rose-600" dir="ltr">${mmFmt(f.amount)}</span>
+                </div>`).join('')}</div>
+            </div>` : ''}
+
+            <p class="text-[10px] font-bold text-slate-400 text-center leading-relaxed px-4">التابة دي لمشتريات الفيزا بس — مالهاش علاقة بـ«فلوسي» ولا بأرصدة حساباتك. سحب الكاش من الفيزا مش محسوب هنا لأنه مش شراء.</p>`;
+            body.innerHTML = html;
+        }
+
+        /* رسمة مشتريات الفيزا لآخر 6 شهور — سلسلة واحدة، من غير ليجند */
+        function mmVisaTrendSvg(selMk) {
+            let months = []; for(let i = 5; i >= 0; i--) months.push(mmAddMonths(selMk, -i));
+            let data = months.map(mk => ({ mk, v: mmVisaMonthData(mk).sum.exp }));
+            let max = Math.max(1, ...data.map(d => d.v));
+            let nice = v => { let p = Math.pow(10, Math.floor(Math.log10(v))); let f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
+            let top = nice(max);
+            const W = 320, H = 150, padT = 10, padB = 24, padL = 34, padR = 4;
+            let plotH = H - padT - padB, plotW = W - padL - padR, slot = plotW / 6, bw = Math.min(22, slot * 0.5);
+            let g = '';
+            [0, 0.5, 1].forEach(f => { let yy = padT + plotH - f * plotH; g += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" stroke="#eef1f6" stroke-width="1"/><text x="${padL - 4}" y="${yy + 3}" text-anchor="end" font-size="8.5" fill="#94a3b8" font-weight="700">${mmCompact(top * f)}</text>`; });
+            data.forEach((d, i) => {
+                let cx = padL + plotW - (i + 1) * slot + slot / 2, x = cx - bw / 2;
+                let h = (d.v / top) * plotH, sel = d.mk === selMk;
+                let [, mm] = d.mk.split('-');
+                g += `<g onclick="mmSetVisaMonth('${d.mk}')" style="cursor:pointer"><rect x="${cx - slot / 2}" y="${padT}" width="${slot}" height="${plotH + padB}" fill="transparent"/>`;
+                if(h >= 0.5) { let r = Math.min(4, h, bw / 2), yt = padT + plotH - h, yb = padT + plotH;
+                    g += `<path d="M${x},${yb} L${x},${yt + r} Q${x},${yt} ${x + r},${yt} L${x + bw - r},${yt} Q${x + bw},${yt} ${x + bw},${yt + r} L${x + bw},${yb} Z" fill="#ea580c" opacity="${sel ? 1 : 0.4}"><title>${arabicMonths[+mm - 1]}: ${mmFmt(d.v)}</title></path>`;
+                    if(sel) g += `<text x="${cx}" y="${yt - 5}" text-anchor="middle" font-size="9.5" fill="#334155" font-weight="800">${mmCompact(d.v)}</text>`;
+                }
+                g += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="9" fill="${sel ? '#334155' : '#94a3b8'}" font-weight="${sel ? 800 : 700}">${arabicMonths[+mm - 1].slice(0, 5)}</text></g>`;
+            });
+            return `<p class="text-[11px] font-black text-slate-500 mb-1">مشتريات الفيزا — آخر 6 شهور</p>
+                <svg viewBox="0 0 ${W} ${H}" class="w-full" role="img" aria-label="مشتريات الفيزا لآخر 6 شهور" style="direction:ltr">${g}</svg>
+                <p class="text-[10px] font-bold text-slate-400 text-center">دوس على أي شهر عشان تشوف تفاصيله</p>`;
+        }
+
         /* ==================== 6) تفاصيل البند + تغيير التصنيف ==================== */
         function mmModal(html) { mmEl('mm-modal-body').innerHTML = html; if(!mmEl('mmModal').classList.contains('active')) openModal('mmModal'); }
-        function mmOpenDrill(dir, idx) {
-            let { sum } = mmMonthData(mmState.month, mmState.bucket);
-            let g = (dir === 'in' ? sum.in : sum.out)[idx]; if(!g) return;
-            mmState.drill = { dir, name: g.name };
+        function mmScopeSum(scope) {
+            return scope === 'visa' ? mmVisaMonthData(mmState.vMonth).sum : mmMonthData(mmState.month, mmState.bucket).sum;
+        }
+        function mmScopeRefresh(scope) { if(scope === 'visa') renderVisaTrack(); else renderMine(); }
+        function mmOpenDrill(dir, idx, scope) {
+            scope = scope || 'money';
+            let g = (dir === 'in' ? mmScopeSum(scope).in : mmScopeSum(scope).out)[idx]; if(!g) return;
+            mmState.drill = { dir, name: g.name, scope };
             mmRenderDrill();
         }
         function mmRenderDrill() {
             let d = mmState.drill; if(!d) return;
-            let { sum } = mmMonthData(mmState.month, mmState.bucket);
+            let sum = mmScopeSum(d.scope);
             let g = (d.dir === 'in' ? sum.in : sum.out).find(x => x.name === d.name);
-            if(!g) { closeModal('mmModal'); renderMine(); return; }
+            if(!g) { closeModal('mmModal'); mmScopeRefresh(d.scope); return; }
             let items = g.items.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             mmModal(`<div class="flex items-center gap-3 mb-4">
                     <span class="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl">${mmCatIcon(g.name)}</span>
-                    <div class="flex-1"><h3 class="font-black text-lg text-slate-800">${mmEsc(g.name)}</h3><p class="text-xs font-bold text-slate-400">${mmMonthLabel(mmState.month)} • ${items.length} حركة</p></div>
+                    <div class="flex-1"><h3 class="font-black text-lg text-slate-800">${mmEsc(g.name)}</h3><p class="text-xs font-bold text-slate-400">${mmMonthLabel(d.scope === 'visa' ? mmState.vMonth : mmState.month)}${d.scope === 'visa' ? ' • الفيزا' : ''} • ${items.length} حركة</p></div>
                     <p class="text-xl font-black text-slate-800" dir="ltr">${mmFmt(g.total)}</p>
                 </div>
                 <div class="space-y-2">${items.map(f => `
@@ -5506,7 +5602,7 @@
                             <p class="text-[10px] font-bold text-slate-400 mt-0.5">${f.date || '-'} • ${mmSourceLabel(f)}</p>
                         </div>
                         <span class="text-sm font-black ${f.dir === 'in' ? 'text-emerald-600' : 'text-rose-600'}" dir="ltr">${mmFmt(f.amount)}</span>
-                        ${f.fixed || f.people ? '' : `<button onclick="mmPickFor('${f.key}')" class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-500 flex-shrink-0" title="تغيير التصنيف"><i class="fa-solid fa-tag text-xs"></i></button>`}
+                        ${f.fixed || f.people ? '' : `<button onclick="mmPickFor('${f.key}','${d.scope}')" class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-500 flex-shrink-0" title="تغيير التصنيف"><i class="fa-solid fa-tag text-xs"></i></button>`}
                     </div>`).join('')}</div>
                 ${g.people ? `<p class="text-[11px] font-bold text-slate-400 mt-4 leading-relaxed">دي فلوس اتحولت بينك وبين حد مش من فلوسك، فبتتحسب ${d.dir === 'in' ? 'دخل' : 'مصروف'} عليك. لو الشخص ده فلوسك انت، علّمه "تبعي" من الإعدادات.</p>` : ''}
                 <button onclick="closeModal('mmModal')" class="w-full mt-5 bg-slate-100 text-slate-600 py-3.5 rounded-2xl font-black text-sm">قفل</button>`);
@@ -5542,8 +5638,9 @@
                 </div>
                 ${specials.length ? `<div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">${specials.map(s => `<button onclick="mmApplyPick('${f.key}','${s.id}',0,'${ctx}')" class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 border-amber-200 bg-amber-50 text-amber-800">${s.label}</button>`).join('')}</div>` : ''}`;
         }
-        function mmPickFor(key) {
+        function mmPickFor(key, scope) {
             let f = mmFindFlow(key); if(!f) return;
+            if(scope) mmState.drill = Object.assign({}, mmState.drill, { scope });
             mmModal(`<h3 class="font-black text-lg text-slate-800 mb-4">غيّر التصنيف</h3>${mmPickerHtml(f, 'drill')}
                 <button onclick="mmRenderDrill()" class="w-full mt-4 bg-slate-100 text-slate-600 py-3 rounded-2xl font-black text-sm">رجوع</button>`);
         }
@@ -5561,6 +5658,7 @@
             else if(kind === 'advance') { t.isAdvance = true; t.category = null; }
             else if(kind === 'visaPay') { t.category = MM_VISA_PAY_CAT; t.isVisaPay = true; t.autoCat = false; }
             saveApp();
+            if(f.src === 'visa' && (kind === 'advance')) { /* اتحوّلت لسحب كاش — هتختفي من المتابعة */ }
             if(ctx === 'review') { mmState.qi++; mmRenderReview(); } else mmRenderDrill();
         }
         function mmNewCatFor(key, kind, ctx) {
@@ -5572,9 +5670,12 @@
         }
 
         /* ==================== 7) المراجعة السريعة ==================== */
-        function mmOpenReview(all) {
-            mmState.reviewAll = !!all;
-            let flows = all ? mmFlows('', '', mmState.bucket) : mmMonthData(mmState.month, mmState.bucket).flows;
+        function mmOpenReview(all, scope) {
+            scope = scope || 'money';
+            mmState.reviewAll = !!all; mmState.scope = scope;
+            let flows = scope === 'visa'
+                ? (all ? mmVisaFlows('', '') : mmVisaMonthData(mmState.vMonth).flows)
+                : (all ? mmFlows('', '', mmState.bucket) : mmMonthData(mmState.month, mmState.bucket).flows);
             mmState.queue = flows.filter(mmNeedsReview).sort((a, b) => b.amount - a.amount).map(f => f.key);
             mmState.qi = 0;
             mmRenderReview();
@@ -5583,9 +5684,9 @@
             let q = mmState.queue;
             while(mmState.qi < q.length) { let f = mmFindFlow(q[mmState.qi]); if(f && !f.cat && !(f.src === 'tx' && f.ref.isTransfer) && !(f.src === 'visa' && f.ref.isAdvance)) break; mmState.qi++; }
             if(mmState.qi >= q.length) {
-                mmModal(`<div class="text-center py-6"><div class="text-5xl mb-3">🎉</div><h3 class="font-black text-xl text-slate-800">كده كله متصنف</h3><p class="text-sm font-bold text-slate-400 mt-2">التحليل دلوقتي بيعكس صرفك الحقيقي.</p>
-                    ${!mmState.reviewAll ? `<button onclick="mmOpenReview(true)" class="mt-5 text-xs font-black text-brand-600 bg-brand-50 px-4 py-2.5 rounded-xl">راجع كل الشهور القديمة كمان</button>` : ''}
-                    <button onclick="closeModal('mmModal'); renderMine()" class="w-full mt-4 bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white py-3.5 rounded-2xl font-black">تمام</button></div>`);
+                mmModal(`<div class="text-center py-6"><div class="text-5xl mb-3">🎉</div><h3 class="font-black text-xl text-slate-800">كده كله متصنف</h3><p class="text-sm font-bold text-slate-400 mt-2">${mmState.scope === 'visa' ? 'دلوقتي تعرف بتصرف على إيه بالفيزا.' : 'التحليل دلوقتي بيعكس صرفك الحقيقي.'}</p>
+                    ${!mmState.reviewAll ? `<button onclick="mmOpenReview(true, '${mmState.scope}')" class="mt-5 text-xs font-black text-brand-600 bg-brand-50 px-4 py-2.5 rounded-xl">راجع كل الشهور القديمة كمان</button>` : ''}
+                    <button onclick="closeModal('mmModal'); mmScopeRefresh('${mmState.scope}')" class="w-full mt-4 bg-gradient-to-r from-brand-600 to-fuchsia-600 text-white py-3.5 rounded-2xl font-black">تمام</button></div>`);
                 return;
             }
             let f = mmFindFlow(q[mmState.qi]);
@@ -5600,7 +5701,7 @@
                     <button onclick="mmState.qi++; mmRenderReview()" class="bg-slate-100 text-slate-600 py-3 rounded-2xl font-black text-sm">تخطي</button>
                     <button onclick="mmAutoRest()" class="bg-brand-50 text-brand-700 border border-brand-200 py-3 rounded-2xl font-black text-sm">✨ صنّف الباقي تلقائي</button>
                 </div>
-                <button onclick="closeModal('mmModal'); renderMine()" class="w-full mt-2 text-xs font-bold text-slate-400 py-2">كفاية كده دلوقتي</button>`);
+                <button onclick="closeModal('mmModal'); mmScopeRefresh('${mmState.scope}')" class="w-full mt-2 text-xs font-bold text-slate-400 py-2">كفاية كده دلوقتي</button>`);
         }
         function mmAutoRest() {
             let n = 0;
@@ -5984,7 +6085,8 @@
             if(!sum.inc && !sum.exp) return `مفيش دخل ولا مصاريف على فلوسك في ${mmMonthLabel(mk)} لسه 📊`;
             let top = sum.out.slice(0, 5).map(g => `• ${g.name}: <b>${mmFmt(g.total)}</b> ج.م (${sum.exp ? Math.round(g.total / sum.exp * 100) : 0}%)`).join('<br>');
             let unc = flows.filter(mmNeedsReview);
-            return `📊 ${mmMonthLabel(mk)}:<br><br>دخل: <b class="text-blue-600">${mmFmt(sum.inc)}</b> | مصروف: <b class="text-orange-600">${mmFmt(sum.exp)}</b> | ${sum.net >= 0 ? 'وفّرت' : 'صرفت زيادة'} <b>${mmFmt(Math.abs(sum.net))}</b><br><br>${top}${unc.length ? `<br><br>⚠️ في ${unc.length} حركة مش متصنفة — صنّفها من تبويب «فلوسي» عشان الأرقام تبقى أدق.` : ''}<br><br>التفاصيل كاملة في تبويب «فلوسي».`;
+            let v = mmVisaMonthData(mk).sum.exp;
+            return `📊 ${mmMonthLabel(mk)}:<br><br>دخل: <b class="text-blue-600">${mmFmt(sum.inc)}</b> | مصروف من حساباتك: <b class="text-orange-600">${mmFmt(sum.exp)}</b> | ${sum.net >= 0 ? 'وفّرت' : 'صرفت زيادة'} <b>${mmFmt(Math.abs(sum.net))}</b><br><br>${top}${v ? `<br><br>💳 وبالفيزا اشتريت بـ <b>${mmFmt(v)}</b> ج.م (متابعتها لوحدها في تابة الفيزا).` : ''}${unc.length ? `<br><br>⚠️ في ${unc.length} حركة مش متصنفة — صنّفها من تبويب «فلوسي».` : ''}`;
         }
 
         // ---------- كروت المعاينة والتأكيد ----------
