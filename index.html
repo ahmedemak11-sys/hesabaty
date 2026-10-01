@@ -950,7 +950,7 @@
         document.getElementById('print-date').innerText = `تاريخ الإصدار: ${today.toLocaleDateString('ar-EG')} - الساعة: ${today.toLocaleTimeString('ar-EG')}`;
 
         // ====== التبويبات ======
-        const TAB_KEYS = ['home','tx','persons','visa','gam3eya','settings'];
+        const TAB_KEYS = ['home','persons','visa','gam3eya','settings'];
         // بنرجّع الترتيب المحفوظ، وأي مفتاح جديد اتضاف في تحديث بيتحط في آخر القايمة تلقائي
         function orderedKeys(stored, canonical) {
             let valid = (stored || []).filter(k => canonical.includes(k));
@@ -968,7 +968,6 @@
             let tabBtn = (pageId, icon, label, brand) => `<button class="${btnClasses} ${currentTab===pageId?activeClasses:inactiveClasses}" onclick="switchPage('${pageId}', this)"><i class="fa-${brand?'brands':'solid'} ${icon}"></i> ${label}</button>`;
             let parts = {
                 home: () => tabBtn('home', 'fa-house', 'الرئيسية'),
-                tx: () => tabBtn('tx', 'fa-plus', 'تسجيل عملية'),
                 persons: () => db.persons.map(p => {
                     let isActive = (currentTab === 'person' && currentPersonId === p.id);
                     let dot = `<div class="w-2.5 h-2.5 rounded-full" style="background:${p.color}"></div>`;
@@ -1056,14 +1055,24 @@
             }
             document.getElementById('h-people').innerHTML = peopleHtml;
 
-            // حاجاتي: الأشخاص اللي معلّمهم "تبعي" — دي فلوسك مقسومة مش فلوس ناس
-            let mine = db.persons.filter(p => p.id !== db.persons[0].id && isMinePerson(p));
-            document.getElementById('h-mine').innerHTML = mine.length ? `
+            // حاجاتي: انت + أي حساب معلّم "تبعي" — دي فلوسك انت مقسومة، مش فلوس ناس
+            let owner = db.persons[0];
+            let buckets = db.persons.filter(p => p.id !== owner.id && isMinePerson(p));
+            let ownerBal = getPersonStats(owner.id).total;
+            let sumRows = ownerBal + buckets.reduce((t, p) => t + getPersonStats(p.id).total, 0);
+            // لو فيه رسوم اتحملتها الخزنة (مش محمّلة على حد)، بتفضل فرق بسيط — بنوضحه بدل ما يحيّرك
+            let gap = Math.round((T.myMoney - sumRows) * 100) / 100;
+            document.getElementById('h-mine').innerHTML = `
                 <div class="flex justify-between items-center mb-3 mt-6 px-1">
                     <h3 class="font-extrabold text-slate-800 text-lg">حاجاتي</h3>
-                    <span class="text-[10px] font-bold text-slate-400">فلوسك مقسومة</span>
+                    <span class="text-xs font-black text-brand-600">${mmFmt(T.myMoney)} ج.م</span>
                 </div>
-                <div class="space-y-2.5">${mine.map(p => card(p, getPersonStats(p.id).total, 'تبعي')).join('')}</div>` : '';
+                <div class="space-y-2.5">
+                    ${card(owner, ownerBal, 'الباقي معايا')}
+                    ${buckets.map(p => card(p, getPersonStats(p.id).total, 'تبعي')).join('')}
+                </div>
+                ${gap ? `<p class="text-[10px] font-bold text-slate-400 mt-2 px-1 leading-relaxed">${gap < 0 ? 'ناقص' : 'زيادة'} <b>${mmFmt(Math.abs(gap))}</b> ج.م رسوم تحويل اتخصمت من الخزنة من غير ما تتحمّل على حد.</p>` : ''}
+                ${buckets.length ? '' : '<p class="text-[10px] font-bold text-slate-400 mt-2 px-1 leading-relaxed">تقدر تقسّم فلوسك (جمعية، التزامات...) إنك تضيفها كحساب وتعلّمه «تبعي» من الإعدادات.</p>'}`;
 
             // الخزائن
             document.getElementById('h-accounts').innerHTML = `
@@ -2558,7 +2567,7 @@
         // ================== قفل التطبيق ==================
         // ملاحظة مهمة: إعدادات القفل متخزنة لوحدها بعيد عن بيانات التطبيق،
         // عشان النسخة الاحتياطية متشيلش الرقم السري، ولا استرجاع نسخة يقفل عليك التطبيق.
-        const APP_VERSION = '4.0.0';
+        const APP_VERSION = '4.0.1';
         const APP_BUILD = '2026-10-01';
         const LOCK_KEY = 'smart_ledger_v6_lock';
         const LOCK_WAIT_KEY = 'smart_ledger_v6_lock_until';
